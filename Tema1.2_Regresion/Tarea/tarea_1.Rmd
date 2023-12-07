@@ -1,0 +1,150 @@
+---
+title: "tarea_1"
+author: "Miguel Muñoz Blat"
+date: "2023-11-30"
+output: html_document
+---
+
+```{r}
+library(GGally)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+cars <- read.csv("cars.csv", sep = ";", dec = ",")
+```
+
+# Ejercicio 1
+
+```{r}
+variables_numericas <- colnames(cars[sapply(cars, is.numeric)])
+cars_num <- cars %>% select(variables_numericas)
+cor(cars_num$Price,cars_num[,-1])
+```
+La varaible X más relacionada linealmente (mayor correlación de Pearson) con Price es Horsepower.
+
+```{r}
+regre <- lm(Price ~ Horsepower, data=cars) 
+summary(regre)
+confint(regre, level = 0.90)
+```
+Vemos como el intercepto es negativo, lo cual en este caso no tendría mucho sentido ya que se correspondería a un precio negativo cuando hay 0 caballos de potencia mientras que la prendiente de la recta ajustada es positiva, lo que indica un aumento del precio de los coches a medida que aumenta su potencia, tal y como cabría esperar. Por otro lado, el p-valor asociado al t-valor del intercepto es mayor que 0.05, por lo que podemos concluir que este coeficiente no es significativamente distinto de cero para un nivel de confianza de 0.05- Por su parte, la pendiente sí presenta un p-valor muy por debajo de 0.05 por lo que es un coeficiente significativamente distinto de cero para este nivel de confianza. El coeficiente de determinación R-cuadrado es 0.6213, lo que significa que este modelo de regresión lineal explica un 62% de la variabilidad de la variable dependiente Precio minetras que in 38% queda sin explicar. Finalmente, el p-valor asociado al estadístico F es también sufucientemente pequeño (< 2.2e-16) como para concluir que al menos un coeficiente del modelo lineal es distinto de cero.
+
+```{r}
+with(cars,plot(Horsepower,Price,col='blue'))
+abline(coef=coefficients(regre),col='red')
+puntos_hp <- data.frame(list(Horsepower = seq(50,300,length.out = 200)))
+bandas <- predict(regre, newdata = puntos_hp, interval = "confidence")
+lines(puntos_hp$Horsepower,bandas[,2],col='black')
+lines(puntos_hp$Horsepower,bandas[,3],col='black')
+```
+
+```{r}
+plot(regre$fitted.values,regre$residuals, col='blue', xlab = 'Predichos',ylab = 'Residuos')
+abline(h=0,lty=2)
+```
+
+En el gráfico de residuos frente a valores predichos podemos ver que la variabilidad no es constante por lo que no tenemos homocedasticidad. Para solucionar la falta de homocedasticidad podemos probar a realizar transformaciones sobre la variable dependiente (Precios). Tomando el logaritmo de los precios tenemos:
+
+```{r}
+regre <- lm(log(Price) ~ Horsepower, data=cars) 
+plot(regre$fitted.values,regre$residuals, col='blue', xlab = 'Predichos',ylab = 'Residuos')
+abline(h=0,lty=2)
+```
+
+Transformando la varaible dependiente con el logaritmo tenemos que la variabilidad es más constate y por tanto obtenemos una mayor homocedasticidad.
+
+Por otro lado, en cuanto a la normalidad de los residuos
+```{r}
+qqnorm(regre$residuals, col='blue', main='')
+qqline(regre$residuals)
+```
+Podemos considerar que la distribución de los residuos es normal, pues la mayotia de los cuantiles se distribuyen alrededor de la recta normal teórica, siendo los últimos cuantiles los que más se desvían de la distribución normal.
+
+```{r}
+shapiro.test(regre$residuals)
+```
+Utilizando el test de normalidad de Shapiro-Wilk obtenemos un p-valor de alrededor de 0.1, que no es suficiente como para rechazar la hipótesis nula de que la distribución es normal para un nivel de significancio de 0.05. Por tanto, podemos considerar que la sitribución de los residuos es normal, y aunque no lo fuera del todo, el modelo lineal es robusto frente a la no normalidad.
+
+# Ejercicio 2
+
+```{r}
+cor(cars$Price,cars$MPG.city)
+```
+MPG.city y Price presentan una correlación lineal de -0.59. El hecho de que su valor absoluto no sea próximo a 1 indica que la relación puede no ser lineal, mientras que el signo de la correlación indica que una aumento del valor de MPG.city produce una disminución del Precio.
+
+```{r}
+regre <- lm(Price ~ MPG.city, data=cars) 
+summary(regre)
+confint(regre, level = 0.90)
+```
+
+El intercepto (Precio cuando MPG.city = 0) es 42 y es significativamente distinto de 0, al igual que la pendiente, Tal y como cabría esperar debido a la correlación negativa entre ambas variables, la pendiente es negativa. El coeficiente de determinación indica que el modelo lineal explica el 35% de la variabilidad de Precio. El p-valor asociado al estadístico F también indica que al menos un coeficiente del modelo es distinto de 0 de forma significativa.
+
+```{r}
+with(cars,plot(MPG.city,Price,col='blue'))
+abline(coef=coefficients(regre),col='red')
+puntos_mpg.city <- data.frame(list(MPG.city = seq(15,46,length.out = 200)))
+bandas <- predict(regre, newdata = puntos_mpg.city, interval = "confidence")
+lines(puntos_mpg.city$MPG.city,bandas[,2],col='black')
+lines(puntos_mpg.city$MPG.city,bandas[,3],col='black')
+```
+
+```{r}
+plot(regre$fitted.values,regre$residuals, col='blue', xlab = 'Predichos',ylab = 'Residuos')
+abline(h=0,lty=2)
+
+qqnorm(regre$residuals, col='blue', main='')
+qqline(regre$residuals)
+```
+
+En la gáfica de Residuos frente a valores predichos podemos ver que la relación entre ambas no es del todo lineal, al igual que también podía apreciarse en la gráfica de dispersión anterior y también en el valor absoluto de la correlación de Pearson. También vemos que la variablidad no es constante por lo que también falla la homocedasticidad. Por otro lado, en la gráfica de los cuantiles de los residuos frente a los cuantiles teóricos de una distribución normal podemos ver como en los extremos los cuantiles se desvían sensiblemente del valor teórico. por lo que tampoco parece que se cumpla la normalidad de los residuos.
+
+```{r}
+shapiro.test(regre$residuals)
+```
+
+El shapiro test en este caso sí nos permite descartar rechazar la hipótesis nula de que la distribución de los residuos en normal para un nivel de significancia de 0.05.
+
+En definitiva, no se cumplen las hipótesis de partida del modelo lineal, por lo que no sería lo más apropiado para describir la relación entre ambas variables. En todo caso, podría plantearse la transformación de alguna de las variables con tal de obtener mayor linealidad, homocedasticidad y normalidad. También podría plantearse otro modelo de regresión no lineal como el modelo exponencial, que parece más adecuado para describir la relación entre estas varaibles.
+
+El modelo exponencial y = a * exp(b * x) puede expresarse como un modelo lineal tomando logaritmos ln(y) = ln(a) + b*ln(x)
+
+```{r}
+cars$log_MPG.city <- log(cars$MPG.city)
+regre <- lm(log(Price) ~ log_MPG.city, data=cars) 
+summary(regre)
+confint(regre, level = 0.90)
+```
+```{r}
+with(cars,plot(log_MPG.city,log(Price),col='blue', xlab = 'log(MPG.city)'))
+abline(coef=coefficients(regre),col='red')
+puntos_log_mpg.city <- data.frame(list(log_MPG.city = seq(min(cars$log_MPG.city),max(cars$log_MPG.city),length.out = 200)))
+bandas <- predict(regre, newdata = puntos_log_mpg.city, interval = "confidence")
+lines(puntos_log_mpg.city$log_MPG.city,bandas[,2],col='black')
+lines(puntos_log_mpg.city$log_MPG.city,bandas[,3],col='black')
+```
+
+```{r}
+plot(regre$fitted.values,regre$residuals, col='blue', xlab = 'Predichos',ylab = 'Residuos')
+abline(h=0,lty=2)
+
+qqnorm(regre$residuals, col='blue', main='')
+qqline(regre$residuals)
+```
+```{r}
+shapiro.test(regre$residuals)
+```
+
+Podemos ver que aplicando el modelo exponencial y expresándilo en términos de un modelo lineal, se cumplen las hipótesis de linealidad, heterocedasticiad y normalidad.
+
+100 kilómetros por 12 litros son 19.6 galones por milla.
+
+```{r}
+predict(regre, newdata = data.frame(log_MPG.city = log(19.6)), interval = 'prediction')
+```
+```{r}
+predict(regre, newdata = data.frame(log_MPG.city = log(19.6)), interval = 'confidence')
+```
+Se espera que el precio mínimo para los coches que consumen 12 litros a los 100 kilómetros sea 2.41, que es el valor mínimo del intervalo de predicción,
