@@ -1,0 +1,199 @@
+---
+title: "Tarea -- Regresión lineal"
+author: "Jesús Martínez Leal y Miguel Muñoz Blat (Grupo 11)"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    echo: yes
+    number_sections: no
+    theme: readable
+    toc: yes
+    fig_caption: yes
+  pdf_document:
+    toc: yes
+    fig_caption: yes
+params:
+  lang: ES
+lang: "`r switch(params$lang, ES = 'es-ES', EN = 'en-US')`"
+subtitle: "Tema 1 - Aprendizaje Máquina (I). Master Ciencia de Datos UV"
+---
+
+```{r setup, cache = F, echo = F, message = F, warning = F, tidy = F}
+# Configuración general de chunks
+library(knitr)
+options(width = 100)
+knitr::opts_chunk$set(echo = T, message = T, error = T, warning = F, comment = NA, dpi = 100, tidy = F, cache.path = '.cache/',  fig.path = './figure/', include = T, fig.cap = "")
+```
+
+```{r librerias, message = F, include = T, echo = F}
+# Carga de librerías necesarias con pacman
+library(pacman)
+pacman::p_load(readr, ggplot2, dplyr, tidyr, MASS)
+```
+
+# Ejercicio 1.
+
+Considera la variable respuesta `Price` relacionándola con la variable `X` con la que tenga mayor relación lineal.
+
+1. Evalúa el efecto de `X` sobre `Price`.
+
+2. Obtén la recta de mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad,
+R2, contraste del modelo, etc...).
+
+3. Dibuja el diagrama de dispersión, la recta de regresión y las bandas de confianza al 90 %.
+
+4. Realiza un diagnóstico de los residuos. Si falla algunas de las condiciones, busca una posible
+solución.
+
+
+## Carga inicial de los datos necesarios.
+
+```{r carga_cars}
+cars <- read.csv2("./data/cars.csv", stringsAsFactors = TRUE)
+```
+
+Lo primero de todo será ver un poco en qué consiste nuestro conjunto de datos y en qué unidades se miden las distintas variables.
+
+```{r info_cars}
+head(cars)
+```
+Tras usar el comando `?Cars93` en la terminal de RStudio, observamos que tenemos numerosas variables con características de 93 coches en venta en Estados Unidos en 1993. Vemos que por ejemplo la variable `Price` viene medida en miles de dólares y que `Horsepower` viene medida en HP (lo que serían 746 W en el Sistema Internacional).
+
+## Apartado 1.
+
+Evalúa el efecto de `X` sobre `Price`.
+
+**Resolución**.
+
+Para evaluar el efecto de una variable `X` de nuestro conjunto sobre `Price` haremos una correlación entre los pares de variables. Se utiliza el método de Pearson para su cálculo.
+
+La expresión de la correlación viene dada por:
+
+\begin{equation}
+r_{X, Y} = \frac{s_{x,y}} {s_x s_y},
+\end{equation}
+
+siendo $s_{x, y}$ la covarianza entre las variables $X$ e $Y$ y $s_{x}, s_{y}$ las desviaciones estándar de las variables $X$ e $Y$, respectivamente.
+
+```{r cor_price}
+cors_Price <- cars %>%
+  summarise(across(where(is.numeric), ~ cor(Price, ., method = "pearson")))
+cors_Price
+
+# Miro cuál es la variable cuyo valor absoluto en correlación es mayor (excluyendo Price)
+
+max_abs_value <- max(abs(cors_Price[!(names(cors_Price) == "Price")]))
+var_max_value <- names(cors_Price)[which(abs(cors_Price) == max_abs_value)]
+
+max_value <- cors_Price[[var_max_value]]
+```
+
+Como se puede apreciar, la mayor correlación en valor absoluto más cercana a la unidad viene dada por la variable `var_max_value` con un valor de `r max_value`.
+
+## Apartado 2.
+
+Obtén la recta de mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad, R2, contraste del modelo, etc...).
+
+**Resolución**.
+
+Nuestro modelo de regresión lineal se considera de la forma:
+
+\begin{equation}
+Y = \beta_0 + \beta_1 X + \epsilon,
+\end{equation}
+
+siendo en este caso $Y$ = $Price$ y $X$ = $Horsepower$.
+
+```{r lm_horsepower_price}
+reg <- lm(Price ~ Horsepower, data = cars)
+sum_reg <- summary(reg) # Resumen del modelo de regresión lineal
+sum_reg
+confint(reg, level = 0.90)
+```
+En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. A pesar de que el intercepto posee un valor negativo (un precio negativo carecería de sentido) se nos indica que no hay significancia, por lo que no se descarta que fuera nulo. En contra, la pendiente sí posee significancia, indicando que efectivamente existe una relación (lineal) entre `Price` y `Horsepower` y que además es positiva. Esto es lo que cabría esperar: una subida del precio del vehículo conforme aumentan los caballos de potencia. Se muestran también los intervalos de confianza al 95% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto no se descarta que sea 0, mientras que la pendiente sí es claramente distinta de 0 y además positiva.$\\$
+
+Por otra parte, el valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Precio`. El valor ajustado del $R^2$ viene dado por la expresión:
+
+\begin{equation}
+R^2_{\textrm{ajustado}} = 1 - \frac{n - 1}{n - k - 1} (1 - R^2)
+\end{equation}
+
+Este tiene en cuenta la penalización incluida por aumentar el número de predictores. El valor obtenido es ligeramente menor: `r sum_reg$adj.r.squared`. $\\$
+
+Finalmente, el p-valor asociado al estadístico F es también sufucientemente pequeño (< 2.2e-16) como para concluir que al menos un coeficiente del modelo lineal es distinto de cero. En este caso, dado que solo hay un predictor, este test sería equivalente al contraste sobre la pendiente de la recta (por eso se obtiene lo mismo).
+
+## Apartado 3.
+
+Dibuja el diagrama de dispersión, la recta de regresión y las bandas de confianza al 90 %.
+
+**Resolución**.
+
+```{r graph_hp_price, fig.cap = "\\label{fig:graph_hp_price}Gráfico de dispersión y recta de regresión para nuestro modelo", fig.pos = "H", fig.align = "center"}
+
+# Gráfico de dispersión con rango en el eje x de 0 a 300
+with(cars, plot(Horsepower, Price, col = 'blue', xlab = 'Horsepower / HP', ylab = 'Price / 1000 $', xlim = c(0, 300), ylim = c(-10, 70)))
+
+# Recta de regresión
+abline(reg, col = 'red')
+
+# Generación de puntos para las bandas de confianza
+puntos_hp <- data.frame(Horsepower = seq(0, 300, length.out = 250))
+bandas <- predict(reg, newdata = puntos_hp, interval = "confidence")
+
+# Líneas para las bandas de confianza
+lines(puntos_hp$Horsepower, bandas[, "lwr"], col = 'black', lty = 2) # Límite inferior
+lines(puntos_hp$Horsepower, bandas[, "upr"], col = 'black', lty = 2) # Límite superior
+
+# Leyenda de regresión y bandas
+legend("topleft", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
+       col = c("red", "black"), lty = c(1, 2))
+```
+Observamos en la Figura anterior cómo la mayoría de puntos con los que contamos están agrupados en torno a 100 - 200 de Horsepower medido en HP. El modelo lineal realmente solo tiene relevancia en la zona de nuestros datos. Puede observarse cómo las bandas de confianza se acercan mucho más a la recta de regresión donde teníamos más valores agrupados.
+
+## Apartado 4.
+
+Realiza un diagnóstico de los residuos. Si falla algunas de las condiciones, busca una posible solución.
+
+**Resolución**
+
+Realizamos primero un diagrama de dispersión para nuestros residuos.
+
+```{r graph_res, fig.cap = "\\label{fig:graph_res}Gráfico de residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
+plot(reg$fitted.values, reg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
+abline(h=0,lty=2)
+```
+
+En el gráfico de residuos frente a valores predichos podemos ver que la variabilidad no es estrictamente constante. Para precios bajos encontramos una menor variabilidad que la hallada para precios intermedios y altos. Esto nos lleva a pensar que no tenemos una homocedasticidad clara. Para tratar de solucionar esto, podemos probar a realizar transformaciones sobre la variable dependiente (Precios).
+
+Tomaremos el logaritmo de los precios en primer lugar, obteniendo lo siguiente.
+
+```{r lm_horsepower_price}
+logreg <- lm(log(Price) ~ Horsepower, data = cars)
+sum_logreg <- summary(logreg) # Resumen del modelo de regresión lineal
+confint(logreg, level = 0.90)
+```
+
+```{r graph_hp_price, fig.cap = "\\label{fig:graph_hp_logrice}Gráfico de dispersión y recta de regresión para nuestro modelo", fig.pos = "H", fig.align = "center"}
+
+# Gráfico de dispersión con rango en el eje x de 0 a 300
+with(cars, plot(Horsepower, log(Price), col = 'blue', xlab = 'Horsepower / HP', ylab = 'Price / 1000 $', xlim = c(0, 300)))
+
+# Recta de regresión
+abline(logreg, col = 'red')
+
+# Generación de puntos para las bandas de confianza
+puntos_hp <- data.frame(Horsepower = seq(0, 300, length.out = 250))
+bandas <- predict(logreg, newdata = puntos_hp, interval = "confidence")
+
+# Líneas para las bandas de confianza
+lines(puntos_hp$Horsepower, bandas[, "lwr"], col = 'black', lty = 2) # Límite inferior
+lines(puntos_hp$Horsepower, bandas[, "upr"], col = 'black', lty = 2) # Límite superior
+
+# Leyenda de regresión y bandas
+legend("topleft", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
+       col = c("red", "black"), lty = c(1, 2))
+```
+```{r graph_logres, fig.cap = "\\label{fig:graph_logres}Gráfico de residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
+plot(logreg$fitted.values, logreg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
+abline(h=0,lty=2)
+```
