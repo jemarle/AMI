@@ -110,7 +110,7 @@ sum_reg <- summary(reg) # Resumen del modelo de regresión lineal
 sum_reg
 confint(reg, level = 0.90)
 ```
-En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. A pesar de que el intercepto posee un valor negativo (un precio negativo carecería de sentido) se nos indica que no hay significancia, por lo que no se descarta que fuera nulo. En contra, la pendiente sí posee significancia, indicando que efectivamente existe una relación (lineal) entre `Price` y `Horsepower` y que además es positiva. Esto es lo que cabría esperar: una subida del precio del vehículo conforme aumentan los caballos de potencia. Se muestran también los intervalos de confianza al 95% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto no se descarta que sea 0, mientras que la pendiente sí es claramente distinta de 0 y además positiva.$\\$
+En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. A pesar de que el intercepto posee un valor negativo (un precio negativo carecería de sentido) se nos indica que no hay significancia, por lo que no se descarta que fuera nulo. En contra, la pendiente sí posee significancia, indicando que efectivamente existe una relación (lineal) entre `Price` y `Horsepower` y que además es positiva. Esto es lo que cabría esperar: una subida del precio del vehículo conforme aumentan los caballos de potencia. Se muestran también los intervalos de confianza al 90% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto no se descarta que sea 0, mientras que la pendiente sí es claramente distinta de 0 y además positiva.$\\$
 
 Por otra parte, el valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Precio`. El valor ajustado del $R^2$ viene dado por la expresión:
 
@@ -148,7 +148,7 @@ lines(puntos_hp$Horsepower, bandas[, "upr"], col = 'black', lty = 2) # Límite s
 legend("topleft", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
        col = c("red", "black"), lty = c(1, 2))
 ```
-Observamos en la Figura anterior cómo la mayoría de puntos con los que contamos están agrupados en torno a 100 - 200 de Horsepower medido en HP. El modelo lineal realmente solo tiene relevancia en la zona de nuestros datos. Puede observarse cómo las bandas de confianza se acercan mucho más a la recta de regresión donde teníamos más valores agrupados.
+Observamos en la Figura anterior cómo la mayoría de puntos con los que contamos están agrupados en torno a 100 - 200 de Horsepower medido en HP. El modelo lineal realmente solo tiene relevancia en la zona de nuestros datos. Puede observarse cómo las bandas de confianza se acercan mucho más a la recta de regresión donde teníamos más valores agrupados. Es notable apreciar cómo hay un valor muy alejado de nuestra recta de regresión que seguramente está "tirando de ella" hacia arriba.
 
 ## Apartado 4.
 
@@ -164,19 +164,40 @@ abline(h=0,lty=2)
 ```
 
 En el gráfico de residuos frente a valores predichos podemos ver que la variabilidad no es estrictamente constante. Para precios bajos encontramos una menor variabilidad que la hallada para precios intermedios y altos. Esto nos lleva a pensar que no tenemos una homocedasticidad clara. Para tratar de solucionar esto, podemos probar a realizar transformaciones sobre la variable dependiente (Precios).
+Por otra parte, la linealidad sí que parece adecuada: los residuos se distribuyen alrededor del 0.
 
-Tomaremos el logaritmo de los precios en primer lugar, obteniendo lo siguiente.
+En cuanto a la normalidad de los residuos encontramos esto:
 
-```{r lm_horsepower_price}
+```{r qqres}
+qqnorm(reg$residuals, col='blue', main = 'QQ-Plot de los Residuos')
+qqline(reg$residuals)
+
+shap <- shapiro.test(reg$residuals)
+shap
+```
+
+Vemos cómo la distribución de residuos sigue un comportamiento normal pero difiere en gran medida en las colas. Utilizando el test de normalidad de Shapiro-Wilk obtenemos un p-valor de `r shap$p.value`, por lo que se rechaza la hipótesis nula de que la distribución sea normal para un nivel de significancia de 0.05.
+
+Veremos ahora cómo cambian las cosas en nuestro modelo si aplicamos una transformación logarítmica.
+
+### Transformación logarítmica de la variable `Precio`
+
+Realizamos los mismos pasos anteriores pero modificando `Precio` por `Log(Precio)` como variable dependiente.
+
+
+```{r lm_horsepower_logprice}
 logreg <- lm(log(Price) ~ Horsepower, data = cars)
 sum_logreg <- summary(logreg) # Resumen del modelo de regresión lineal
+sum_logreg
 confint(logreg, level = 0.90)
 ```
 
-```{r graph_hp_price, fig.cap = "\\label{fig:graph_hp_logrice}Gráfico de dispersión y recta de regresión para nuestro modelo", fig.pos = "H", fig.align = "center"}
+Con el modelo logarítmico apreciamos que el valor de $R^2$ ha subido algo, teniendo `r sum_logreg$r.squared`, lo que indicaría en este caso una ligera mejoría de lo que teníamos anteriormente. Esto se debe principalmente a que el "outlier" que se ha comentado anteriormente ha sido reducido en importancia con esta transformación.
+
+```{r graph_hp_logprice, fig.cap = "\\label{fig:graph_hp_logrice}Gráfico de dispersión y recta de regresión para nuestro modelo tras la transformación logarítmica", fig.pos = "H", fig.align = "center"}
 
 # Gráfico de dispersión con rango en el eje x de 0 a 300
-with(cars, plot(Horsepower, log(Price), col = 'blue', xlab = 'Horsepower / HP', ylab = 'Price / 1000 $', xlim = c(0, 300)))
+with(cars, plot(Horsepower, log(Price), col = 'blue', xlab = 'Horsepower / HP', ylab = 'Log(Price / 1000 $)', xlim = c(0, 300)))
 
 # Recta de regresión
 abline(logreg, col = 'red')
@@ -193,7 +214,117 @@ lines(puntos_hp$Horsepower, bandas[, "upr"], col = 'black', lty = 2) # Límite s
 legend("topleft", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
        col = c("red", "black"), lty = c(1, 2))
 ```
-```{r graph_logres, fig.cap = "\\label{fig:graph_logres}Gráfico de residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
-plot(logreg$fitted.values, logreg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
-abline(h=0,lty=2)
+
+```{r graph_logres, fig.cap = "\\label{fig:graph_logres}Gráfico de residuos en nuestro modelo tras la transformación logarítmica", fig.pos = "H", fig.align = "center"}
+plot(logreg$fitted.values, logreg$residuals, col = 'blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos en modelo logarítmico")
+abline(h = 0,lty = 2)
 ```
+
+Puede observarse cómo con el modelo logarítmico se ha podido disminuir ligeramente la homocedasticidad, en el sentido de que no están tan agrupados los puntos iniciales entre sí. 
+
+
+```{r qqlogres}
+qqnorm(logreg$residuals, col='blue', main = 'QQ-Plot de los Residuos en transformación logarítmica')
+qqline(logreg$residuals)
+
+logshap <- shapiro.test(logreg$residuals)
+logshap
+```
+En este caso obtenemos que nuestra distribución de residuos se adapta más a una distribución normal, viéndose además reflejado esto en el shapiro test donde se obtiene un p-valor de `r logshap` > 0.05. Así pues, no puede rechazarse la hipótesis nula de normalidad.
+
+# Ejercicio 2.
+
+Considera la variable respuesta Price relacionandola con el predictor MPG.city.
+
+1. Evalúa el efecto de MPG.city sobre Price.
+
+2. Obtén la recta mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad,
+R2, contraste del modelo, etc...).
+
+3. Dibuja el diagrama de dispersión, la recta de regresión y las bandas de predicción al 90 %.
+
+4. Realiza un análisis de los residuos.
+
+5. ¿Te parece adecuado haber realizado regresión lineal o es preferible otro tipo de regresión?. Ajusta
+el modelo que te parezca más adecuado.
+
+6. ¿Qué precio mínimo se espera para aquellos coches con un consumo de 12 litros a los 100 km por
+ciudad? Calcula e interpreta el intervalo de confianza y el de predicción.
+
+## Apartado 1.
+
+Evalúa el efecto de MPG.city sobre Price.
+
+**Resolución**.
+
+En primer lugar, de ojear en `?Cars93` vemos que `MPG.city` es básicamente `Millas por galón estadounidense de ciudad`. Es una de las métricas usadas para evaluar la economía del combustible de un vehículo. Una vez sabido esto ya tenemos un poco más de contexto acerca de lo que estamos haciendo. $\\$
+
+La correlación entre `Price` y `MPG.city` se muestra a continuación.
+
+```{r cor_mpg_price}
+cor_Price_MPG <- cor(cars$Price, cars$MPG.city, method = "pearson")
+cor_Price_MPG
+```
+MPG.city y Price presentan una correlación lineal de `r cor_Price_MPG`. Su valor absoluto está algo alejado de la unidad, por lo que la relación no es del todo lineal. Por otra parte, el signo negativo indica que, en general, un aumento de MPG.city conllevaría una disminución del Precio.
+
+## Apartado 2.
+
+Obtén la recta mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad, R2, contraste del modelo, etc...).
+
+**Resolución**.
+
+Nuestro modelo de regresión lineal se considera de la forma:
+
+\begin{equation}
+Y = \beta_0 + \beta_1 X + \epsilon,
+\end{equation}
+
+siendo en este caso $Y$ = $Price$ y $X$ = $MPG.city$.
+
+```{r lm_MPGcity_Price}
+reg <- lm(Price ~ MPG.city, data = cars)
+sum_reg <- summary(reg) # Resumen del modelo de regresión lineal
+sum_reg
+confint(reg, level = 0.90)
+```
+En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. El intercepto posee un valor claramente distinto de 0 y además cuenta con significancia. El valor de la pendiente por su parte es negativo y cuenta con significancia. Se muestran también los intervalos de confianza al 90% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto no se descarta que sea 0, mientras que la pendiente sí es claramente distinta de 0 y además negativa.$\\$
+
+Por otra parte, el valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Precio`. Este valor es ciertamente bajo y está algo lejos de lo que sería lo usualmente aceptable.
+
+El valor ajustado del $R^2$ viene dado por la expresión:
+
+\begin{equation}
+R^2_{\textrm{ajustado}} = 1 - \frac{n - 1}{n - k - 1} (1 - R^2)
+\end{equation}
+
+Este tiene en cuenta la penalización incluida por aumentar el número de predictores. El valor obtenido es ligeramente menor: `r sum_reg$adj.r.squared`. $\\$
+
+Finalmente, el p-valor asociado al estadístico F es también sufucientemente pequeño (< 3.31e-10) como para concluir que al menos un coeficiente del modelo lineal es distinto de cero. En este caso, dado que solo hay un predictor, este test sería equivalente al contraste sobre la pendiente de la recta (por eso se obtiene lo mismo).
+
+## Apartado 3.
+
+Dibuja el diagrama de dispersión, la recta de regresión y las bandas de predicción al 90 %.
+
+**Resolución**.
+
+```{r graph_mpg_price, fig.cap = "\\label{fig:graph_mpg_price}Gráfico de dispersión y recta de regresión para nuestro modelo", fig.pos = "H", fig.align = "center"}
+
+with(cars, plot(MPG.city, Price, col = 'blue', xlab = 'MPG.city / MPG', ylab = 'Price / 1000 $'))
+
+# Recta de regresión
+abline(reg, col = 'red')
+
+# Generación de puntos para las bandas de confianza
+puntos_hp <- data.frame(MPG.city = seq(0, max(cars$MPG.city), length.out = 250))
+bandas <- predict(reg, newdata = puntos_hp, interval = "confidence")
+
+# Líneas para las bandas de confianza
+lines(puntos_hp$MPG.city, bandas[, "lwr"], col = 'black', lty = 2) # Límite inferior
+lines(puntos_hp$MPG.city, bandas[, "upr"], col = 'black', lty = 2) # Límite superior
+
+# Leyenda de regresión y bandas
+legend("topright", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
+       col = c("red", "black"), lty = c(1, 2))
+```
+Se hace muy evidente con la representación que la variable `MPG.city` tiene un aspecto algo cuantizado, ya que no posee demasiados valores distintos. Esto hace que para un mismo valor de esta, haya muchos valores de `Price` diferentes.
+
