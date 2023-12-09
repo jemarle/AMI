@@ -16,13 +16,20 @@ params:
   lang: ES
 lang: "`r switch(params$lang, ES = 'es-ES', EN = 'en-US')`"
 subtitle: "Tema 1 - Aprendizaje Máquina (I). Master Ciencia de Datos UV"
+header-includes:
+   - \usepackage{multirow}
+   - \usepackage{tikz} # Diagramas Latex
+   - \usetikzlibrary{positioning}
+   - \usepackage{float}
+   - \usepackage[font=small,labelfont=bf,labelsep=period]{caption}
+   - \usepackage{subcaption}
 ---
 
 ```{r setup, cache = F, echo = F, message = F, warning = F, tidy = F}
 # Configuración general de chunks
 library(knitr)
 options(width = 100)
-knitr::opts_chunk$set(echo = T, message = T, error = T, warning = F, comment = NA, dpi = 100, tidy = F, cache.path = '.cache/',  fig.path = './figure/', include = T, fig.cap = "")
+knitr::opts_chunk$set(echo = F, message = T, error = T, warning = F, comment = NA, dpi = 100, tidy = F, cache.path = '.cache/',  fig.path = './figure/', include = T, fig.cap = "", fig.width = 6, fig.height = 4.5)
 ```
 
 ```{r librerias, message = F, include = T, echo = F}
@@ -160,7 +167,7 @@ Realizamos primero un diagrama de dispersión para nuestros residuos.
 
 ```{r graph_res, fig.cap = "\\label{fig:graph_res}Gráfico de residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
 plot(reg$fitted.values, reg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
-abline(h=0,lty=2)
+abline(h = 0, lty = 2)
 ```
 
 En el gráfico de residuos frente a valores predichos podemos ver que la variabilidad no es estrictamente constante. Para precios bajos encontramos una menor variabilidad que la hallada para precios intermedios y altos. Esto nos lleva a pensar que no tenemos una homocedasticidad clara. Para tratar de solucionar esto, podemos probar a realizar transformaciones sobre la variable dependiente (Precios).
@@ -168,7 +175,7 @@ Por otra parte, la linealidad sí que parece adecuada: los residuos se distribuy
 
 En cuanto a la normalidad de los residuos encontramos esto:
 
-```{r qqres}
+```{r qqres, fig.cap = "\\label{fig:qq_res}QQ-Plot de los residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
 qqnorm(reg$residuals, col='blue', main = 'QQ-Plot de los Residuos')
 qqline(reg$residuals)
 
@@ -223,7 +230,7 @@ abline(h = 0,lty = 2)
 Puede observarse cómo con el modelo logarítmico se ha podido disminuir ligeramente la homocedasticidad, en el sentido de que no están tan agrupados los puntos iniciales entre sí. 
 
 
-```{r qqlogres}
+```{r qqlogres, fig.cap = "\\label{fig:qq_logres}QQ-Plot de los residuos en nuestro modelo con transformación logarítmica", fig.pos = "H", fig.align = "center"}
 qqnorm(logreg$residuals, col='blue', main = 'QQ-Plot de los Residuos en transformación logarítmica')
 qqline(logreg$residuals)
 
@@ -315,16 +322,201 @@ with(cars, plot(MPG.city, Price, col = 'blue', xlab = 'MPG.city / MPG', ylab = '
 abline(reg, col = 'red')
 
 # Generación de puntos para las bandas de confianza
-puntos_hp <- data.frame(MPG.city = seq(0, max(cars$MPG.city), length.out = 250))
-bandas <- predict(reg, newdata = puntos_hp, interval = "confidence")
+puntos_mpg <- data.frame(MPG.city = seq(0, max(cars$MPG.city), length.out = 250))
+bandas <- predict(reg, newdata = puntos_mpg, interval = "confidence")
 
 # Líneas para las bandas de confianza
-lines(puntos_hp$MPG.city, bandas[, "lwr"], col = 'black', lty = 2) # Límite inferior
-lines(puntos_hp$MPG.city, bandas[, "upr"], col = 'black', lty = 2) # Límite superior
+lines(puntos_mpg$MPG.city, bandas[, "lwr"], col = 'black', lty = 2) # Límite inferior
+lines(puntos_mpg$MPG.city, bandas[, "upr"], col = 'black', lty = 2) # Límite superior
 
 # Leyenda de regresión y bandas
 legend("topright", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
        col = c("red", "black"), lty = c(1, 2))
 ```
 Se hace muy evidente con la representación que la variable `MPG.city` tiene un aspecto algo cuantizado, ya que no posee demasiados valores distintos. Esto hace que para un mismo valor de esta, haya muchos valores de `Price` diferentes.
+
+## Apartado 4.
+
+Realiza un análisis de los residuos.
+
+**Resolución**.
+
+Realizamos primero un diagrama de dispersión para nuestros residuos.
+
+```{r graph_mpg_res, fig.cap = "\\label{fig:graph_mpg_res}Gráfico de residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
+plot(reg$fitted.values, reg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
+abline(h = 0, lty = 2)
+```
+En la gráfica de residuos frente a valores predichos podemos ver que la relación entre ambas no es del todo lineal, tal y como podía verse tanto en la gráfica de dispersión anterior como en el valor absoluto de la correlación de Pearson. Vemos además que la variablidad no es constante por lo que también falla la homocedasticidad. 
+En cuanto a la normalidad de los residuos encontramos esto:
+
+```{r qqres_mpg, fig.cap = "\\label{fig:qq_mpg_res}QQ-Plot de los residuos en nuestro modelo", fig.pos = "H", fig.align = "center"}
+qqnorm(reg$residuals, col='blue', main = 'QQ-Plot de los Residuos')
+qqline(reg$residuals)
+
+shap <- shapiro.test(reg$residuals)
+shap
+```
+
+Por otro lado, en la gráfica de los cuantiles de los residuos frente a los cuantiles teóricos de una distribución normal podemos ver cómo en los extremos los cuantiles se desvían considerablemente, por lo que tampoco parece que se cumpla la normalidad de los residuos. Esto puede verse también con un contraste de hipótesis que nos brinda el test de normalidad de Shapiro-Wilk, en el que se obtiene un p-valor de `r shap$p.value`, por lo que se rechaza la hipótesis nula de que la distribución sea normal para un nivel de significancia de 0.05. $\\$
+
+
+En definitiva, no se cumplen las hipótesis de partida del modelo lineal, por lo que no sería lo más apropiado para describir la relación entre ambas variables. En todo caso, podría plantearse la transformación de alguna de las variables con tal de obtener mayor linealidad, homocedasticidad y normalidad. También podría plantearse otro modelo de regresión no lineal como el **modelo potencial**, que parece más adecuado para describir la relación entre estas varaibles.
+
+## Apartado 5.
+
+¿Te parece adecuado haber realizado regresión lineal o es preferible otro tipo de regresión? Ajusta el modelo que te parezca más adecuado.
+
+**Resolución**.
+
+Se probarán distintos modelos para ver con cuál se obtienen resultados más óptimos.
+
+### Paso a un modelo potencial.
+
+El modelo potencial que proponemos es de la forma: 
+
+\begin{equation}
+Y = \beta_0 X^{\beta_{1}}
+\end{equation}
+
+Este puede expresarse como un modelo lineal tomando logaritmos:
+
+\begin{equation}
+\log(Y) = \log(\beta_0) + \beta_1 \log(X)
+\end{equation}
+
+Pasan a realizarse los pasos seguidos anteriormente aplicando esta última transformación.
+
+```{r cor_logmpg_logprice}
+cars$log_MPG.city <- log(cars$MPG.city)
+
+cor_logPrice_logMPG <- cor(log(cars$Price), cars$log_MPG.city, method = "pearson")
+cor_logPrice_logMPG
+```
+Vemos ya que la correlación ha aumentado (en valor absoluto) entre estas dos variables, lo que es una buena señal.
+
+```{r lm_logMPGcity_logPrice}
+logreg <- lm(log(Price) ~ log_MPG.city, data = cars)
+sum_logreg <- summary(logreg) # Resumen del modelo de regresión lineal
+sum_logreg
+confint(logreg, level = 0.90)
+```
+Observamos ya una subida en el valor de $R^2$:`r sum_logreg$r.squared`, indicando que este modelo puede ajustarse de una mejor manera a nuestros datos.
+
+```{r graph_logmpg_logprice, fig.cap = "\\label{fig:graph_logmpg_logprice}Gráfico de dispersión y recta de regresión para nuestro modelo potencial", fig.pos = "H", fig.align = "center"}
+
+# Crear el gráfico de dispersión
+with(cars, plot(log_MPG.city, log(Price), col = 'blue', xlab = 'log(MPG.city / mpg)', ylab = 'log(Price / 1000 $)'))
+
+# Añadir la línea de regresión
+abline(coef = coefficients(logreg), col = 'red')
+
+# Generar puntos para el eje x
+puntos_log_mpg.city <- data.frame(log_MPG.city = seq(min(cars$log_MPG.city), max(cars$log_MPG.city), length.out = 200))
+
+# Predecir valores y bandas de confianza
+bandas <- predict(logreg, newdata = puntos_log_mpg.city, interval = "confidence")
+
+# Graficar las bandas de confianza
+lines(puntos_log_mpg.city$log_MPG.city, bandas[, 2], col = 'black') # Límite inferior
+lines(puntos_log_mpg.city$log_MPG.city, bandas[, 3], col = 'black') # Límite superior
+
+
+# Leyenda de regresión y bandas
+legend("topright", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
+       col = c("red", "black"), lty = c(1, 2))
+```
+```{r graph_logmpg_res, fig.cap = "\\label{fig:graph_mpg_res}Gráfico de residuos en nuestro nuevo modelo potencial", fig.pos = "H", fig.align = "center"}
+plot(logreg$fitted.values, logreg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
+abline(h = 0, lty = 2)
+```
+Vemos cómo el problema de la heterocedasticidad se ha ido en gran medida, al igual que el de la linealidad. $\\$
+
+En cuanto a la normalidad de los residuos podemos aplicar el contraste que nos ofrece el shapiro test nuevamente, obteniendo:
+
+```{r qqlogresmpg, fig.cap = "\\label{fig:qq_logresmpg}QQ-Plot de los residuos en nuestro modelo con transformación potencial", fig.pos = "H", fig.align = "center"}
+qqnorm(logreg$residuals, col='blue', main = 'QQ-Plot de los Residuos en transformación logarítmica')
+qqline(logreg$residuals)
+
+logshap <- shapiro.test(logreg$residuals)
+logshap
+```
+Ahora sí vemos que los residuos parecen mucho más normales, obteniendo un p-valor de `r logshap$p.value`: no se puede rechazar la hipótesis nula de normalidad.
+
+## Apartado 6.
+
+¿Qué precio mínimo se espera para aquellos coches con un consumo de 12 litros a los 100 km por ciudad? Calcula e interpreta el intervalo de confianza y el de predicción.
+
+**Resolución**
+
+Para hacer este cálculo debemos primero conocer la conversión a las unidades que estamos tratando con nuestros datos. Una búsqueda en [Convertidor](https://www.advancedconverter.com/es/otros-convertidores/consumo-de-combustible/millas-por-galon-us-a-kilómetros-por-litro) nos muestra que:
+
+\begin{equation}
+1 \ \textrm{km / L} = 2.3521 \ \textrm{mpg}
+\end{equation}
+
+Así pues, realizando una operación sencilla con tenemos:
+
+\begin{equation}
+\frac{100}{12} \ \textrm{km / L} \times  2.3521 \ \textrm{mpg} = 19.60 \textrm{mpg}
+\end{equation}
+
+Hay que tener algo de cuidado, ya que tenemos un modelo de la forma log-log. Así pues, además de introducir en la variable $X$ que tenemos $\log(19.60)$, obtendremos valores para `log(Price)`. Es por eso que aplicamos la función inversa a la transformación implementada: en este caso la exponencial.
+
+
+```{r conf_logprice_logmpg}
+# Valor de estimación puntual
+mpg_value <- 19.60
+log_mpg_value <- log(mpg_value)
+
+# Predicción por nuestro modelo
+prediction_original_scale <- exp(predict(logreg, newdata = data.frame(log_MPG.city = log_mpg_value), interval = 'confidence'))
+
+cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es",
+    round(prediction_original_scale[1], 3), "con un intervalo de confianza:", 
+    "(", round(prediction_original_scale[2], 3), ",", round(prediction_original_scale[3], 3), ").")
+```
+
+```{r pred_logprice_logmpg}
+# Valor de estimación puntual
+mpg_value <- 19.60
+log_mpg_value <- log(mpg_value)
+
+# Predicción por nuestro modelo
+prediction_original_scale <- exp(predict(logreg, newdata = data.frame(log_MPG.city = log_mpg_value), interval = 'prediction'))
+
+cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es",
+    round(prediction_original_scale[1], 3), "con un intervalo de predicción:", 
+    "(", round(prediction_original_scale[2], 3), ",", round(prediction_original_scale[3], 3), ").")
+```
+Puede observarse fácilmente cómo el intervalo de predicción es mucho más ancho que el de confianza. Esto se debe a que en el intervalo de predicción se considera tanto la incertidumbre en la estimación del parámetro de la población como la variabilidad de los puntos de datos individuales alrededor de la línea de regresión. $\\$
+
+Para responder a la pregunta que se nos hace conviene utilizar el que ofrece la predicción. El precio mínimo esperado será de `r round(prediction_original_scale[2], 3)` miles de dólares.
+
+# Ejercicio 3.
+
+1. Considerando un tope de 10 variables, encuentra el número óptimo de variables a incluir en un modelo predictivo de Price, según los criterios R2, BIC y AIC.
+- ¿Qué variables incluye el modelo obtenido? (seleccionar el criterio que más te guste). Interpreta los coeficientes obtenidos, ¿consideras que tienen sentido?.
+
+2. Selecciona el mejor modelo con el método stepwise.
+
+3. Selecciona el mejor modelo con el método stepwise considerando la variable Passengers como
+factor. Contesta a las siguientes preguntas:
+
+- ¿Qué % de la varianza de Price explica el modelo?
+- ¿Podrías depurar el modelo?
+- ¿Cuál es el efecto de la variable Origin sobre Price?
+
+4. ¿Qué modelo de los apartados anteriores es mejor? Con el que te quedes, realiza el diagnóstico de tu modelo, sin emprender ninguna acción, e indica los problemas que presenta.
+
+5. Emprende ahora las acciones que te parezcan oportunas e indica los problemas que has conseguido solucionar o mejorar un poco.
+
+6. Obtén la predicción del precio para un coche en la mediana de los predictores en el modelo escogido. Notar que las variables categóricas se tratan de diferente manera, no hay mediana.
+
+## Apartado 1.
+
+Considerando un tope de 10 variables, encuentra el número óptimo de variables a incluir en un modelo predictivo de Price, según los criterios R2, BIC y AIC.
+- ¿Qué variables incluye el modelo obtenido? (seleccionar el criterio que más te guste). Interpreta los coeficientes obtenidos, ¿consideras que tienen sentido?.
+
+**Resolución**.
 
