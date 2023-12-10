@@ -35,7 +35,7 @@ knitr::opts_chunk$set(echo = F, message = T, error = T, warning = F, comment = N
 ```{r librerias, message = F, include = T, echo = F}
 # Carga de librerías necesarias con pacman
 library(pacman)
-pacman::p_load(readr, ggplot2, dplyr, tidyr, MASS)
+pacman::p_load(readr, ggplot2, dplyr, tidyr, MASS, leaps)
 ```
 
 # Ejercicio 1.
@@ -520,3 +520,216 @@ Considerando un tope de 10 variables, encuentra el número óptimo de variables 
 
 **Resolución**.
 
+```{r carga_cars_2}
+cars <- read.csv2("./data/cars.csv", stringsAsFactors = TRUE)
+```
+
+La función `regsubsets()` del paquete `leaps` nos permitirá realizar regresiones por subconjuntos, lo que implica la posibilidad de poder ajustar modelos lineales con todas las combinaciones posibles de un conjunto dado de variables predictoras. Podremos con esta además identificar los valores que toman los modelos según los distintos criterios propuestos ($R^2$, BIC, AIC (llamado aquí CP)). $\\$
+
+A continuación se muestra lo que devuelve esta función al aplicarse a nuestros datos. Obtendremos primeramente una especie de tabla en el que se muestran los mejores modelos (`nbest = 1`) según el número de variables inmiscuidas (de 1 hasta `nvmax`), junto con las variables que este emplea.
+
+```{r ajuste.todo, fig.cap = "\\label{fig:ajuste.todo}Valores obtenidos para distintos criterios en el mejor modelo según el número de variables", fig.pos = "H", fig.align = "center"}
+
+# Implementar variables predictoras cuadráticas
+numeric_columns <- colnames(cars)[sapply(cars, is.numeric)]
+variables_cuadraticas <- paste0("I(", numeric_columns, "^2)")
+formula <- as.formula(paste("Price ~", paste(numeric_columns, collapse = "+"), "+", paste(variables_cuadraticas, collapse = "+")))
+
+nvmax <- 10
+
+ajuste.todo <- regsubsets(formula, data = cars, nvmax = nvmax, nbest = 1)
+#ajuste.todo <- regsubsets(Price ~ ., data = cars, nvmax = nvmax, nbest = 1) # si solo se quieren las lineales...
+resumen <- summary(ajuste.todo)
+resumen$outmat
+
+resultado <- cbind(resumen$rsq, resumen$adjr2, resumen$cp, resumen$bic)
+colnames(resultado) <- c('Rsq', 'RsqAdj', 'Cp', 'BIC')
+resultado
+
+par(mfrow = c(1,3))
+
+plot(1:nvmax, resumen$adjr2, xlab = "# Variables", main = "Coef. Det. Ajustado",
+     type="b")
+abline(v = which.max(resumen$adjr2), col = 2)
+
+plot(1:nvmax, resumen$cp, xlab = "# Variables", main = "Cp de Mallows",
+     type='b')
+abline(v = which.min(resumen$cp), col = 2)
+
+plot(1:nvmax, resumen$bic, xlab = "# Variables", main = "BIC",
+     type = "b")
+abline(v = which.min(resumen$bic), col = 2)
+
+par(mfrow=c(1,1))
+```
+
+A la vista de lo obtenido hemos visto adecuado seleccionar el mejor modelo en función de los criterios `CP` o `BIC`, ya que nos permitan reducir algo la complejidad (tendríamos 6 variables en lugar de 10) respecto a si lo hiciéramos con el de `RsqAdj`.
+
+```{r}
+# Obtener el modelo con la mejor métrica BIC
+mejor_modelo_bic <- resumen$which[which.min(resumen$bic), ]
+
+# Obtener nombres de las variables incluidas en el mejor modelo
+variables_incluidas <- names(which(mejor_modelo_bic))
+variables_incluidas <- variables_incluidas[variables_incluidas != "(Intercept)"]
+
+# Crear la fórmula con términos cuadráticos y variables seleccionadas
+formula <- reformulate(variables_incluidas, response = "Price")
+
+# Modelo de regresión lineal múltiple con términos cuadráticos
+modelo_final <- lm(formula, data = cars)
+
+# Resumen del modelo final
+summary(modelo_final)
+```
+
+```{r seleccion_modelo_regsubsets}
+mejor_modelo_bic <- resumen$which[which.min(resumen$bic), ]
+
+variables_incluidas <- names(which(mejor_modelo_bic))
+
+# Arreglos para contener la variable de tipo factor entera y no solo una de sus opciones:
+variables_incluidas_arreglado <- gsub("^Type[^_]*", "Type", variables_incluidas)
+variables_incluidas_arreglado <- gsub("^Origin[^_]*", "Origin", variables_incluidas_arreglado)
+#variables_incluidas_arreglado <- variables_incluidas_arreglado[variables_incluidas_arreglado %in% colnames(cars)]
+
+# Modelo de regresión lineal múltiple obtenido:
+modelo_final <- lm(Price ~ . , data = cars[, c("Price", variables_incluidas_arreglado)])
+summary(modelo_final)
+```
+Las variables que incluye el mejor modelo seleccionado son: {`r variables_incluidas_arreglado`} (resultando significativos sus coeficientes para el modelo, como bien se muestra arriba). Nótese que las variables `Type` y `Origin` han sido consideradas de tipo factor, por lo que, a pesar de que en el mejor modelo obtenido con BIC se seleccionaran solo ciertas categorías, en el modelo seleccionado final debe estar la columna pertinente completa. $\\$
+
+Los resultados obtenidos resultan lógicos si se piensa en el contexto.
+
+- Un incremento en potencia (`Horsepower`) conllevaría un mayor `Precio` en líneas generales.
+- Un incremento en la distancia entre centros de ruedas delanteras y traseras (`Wheelbase`) suele indicar que el coche sea algo más grande, lo que puede llevar a un mayor precio.
+
+En cuanto al resto, resulta muy complicado deducir de manera lógica el por qué el coeficiente es positivo o negativo. Se necesitarían explorar otros factores importantes como pudiera ser la demanda de dicho año (1993) en USA de vehículos. Además, una muestra de `nrow(cars)` vehículos no consideramos que sea del todo suficiente (al menos con la percepción actual de la gran cantidad de vehículos que existen).
+
+## Apartado 2.
+
+Selecciona el mejor modelo con el método stepwise.
+
+**Resolución**.
+
+Otro método de selección de un modelo óptimo es el que plantea `stepwise`. Existen dos enfoques:
+
+- **Forward Selection (selección hacia delante)**. Se parte aquí de un modelo vació y se van agregando una a una las variables predictoras, evaluando el impacto de cada adición en el rendimiento del modelo. En cada caso, se agrega la variable que más mejora la métrica de desempeño que estemos utilizando (como BIC), hasta que no se mejore más o se alcance algún criterio de detención.
+
+- **Backward Elimination (eliminación hacia atrás)**. Se empieza con un modelo que incluye todas las variables predictoras y, en cada paso, elimina la variable menos significativa según algún criterio de evaluación (como BIC) hasta que eliminar más variables empeore el modelo o se alcance un criterio de detención.
+
+Existen alternativas que mezclarían los dos métodos.
+
+**Forward stepwise**.
+
+El recorrido se muestra a continuación.
+
+```{r stepwise_selection_forward}
+ajuste_0 <- lm(Price ~ 1 , data = cars) # solo el intercepto
+traza_forward <- step(ajuste_0, scope = Price ~ Type + Price + MPG.city + 
+                        MPG.highway + EngineSize + Horsepower + RPM + 
+                        Rev.per.mile + Fuel.tank.capacity + Passengers 
+                      + Length + Wheelbase + Width + Weight + Origin,  
+                      direction = 'forward')
+```
+
+Vemos que el mejor modelo al que acaba llegando el proceso iterativo en modo `forward` es al que posee las variables predictoras `r colnames(traza_forward$model)`. El valor final obtenido para `AIC` ha sido de `r traza_forward$anova$AIC[length(traza_forward$anova$AIC)]`.
+
+**Backward stepwise**.
+
+El recorrido se muestra a continuación.
+
+```{r stepwise_selection_backward}
+ajuste_todo <- lm(Price ~ ., data = cars)
+traza_backward <- step(ajuste_todo, direction = 'backward')
+```
+
+Vemos que el mejor modelo al que acaba llegando el proceso iterativo en modo `backward` es al que posee las variables predictoras `r colnames(traza_backward$model)`. El valor final obtenido para `AIC` ha sido de `r traza_backward$anova$AIC[length(traza_backward$anova$AIC)]`.
+
+**Método híbrido**.
+
+```{r stepwise_selection_both}
+ajuste_todo <- lm(Price ~ ., data = cars)
+traza_both <- step(ajuste_todo, direction = 'both')
+```
+
+Vemos que el mejor modelo al que acaba llegando el proceso iterativo en modo `both` es al que posee las variables predictoras `r colnames(traza_both$model)`. El valor final obtenido para `AIC` ha sido de `r traza_both$anova$AIC[length(traza_both$anova$AIC)]`.
+
+$\\$
+
+El modelo seleccionado será el que obtenga el valor de `AIC` más bajo. 
+
+```{r seleccion_mejor_stepwise}
+# Obtener los valores de AIC en un vector
+valores_AIC <- c(
+  traza_both$anova$AIC[length(traza_both$anova$AIC)],
+  traza_forward$anova$AIC[length(traza_forward$anova$AIC)],
+  traza_backward$anova$AIC[length(traza_backward$anova$AIC)]
+)
+
+# Obtener el nombre del método con el menor valor de AIC
+metodos <- c("both", "forward", "backward")
+metodo_menor_valor <- metodos[which.min(valores_AIC)]
+
+# El valor mínimo de AIC
+valor_minimo_AIC <- min(valores_AIC)
+```
+
+El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)`.
+
+## Apartado 3.
+
+Selecciona el mejor modelo con el método stepwise considerando la variable Passengers como
+factor. Contesta a las siguientes preguntas:
+
+- ¿Qué % de la varianza de Price explica el modelo?
+- ¿Podrías depurar el modelo?
+- ¿Cuál es el efecto de la variable Origin sobre Price?
+
+**Resolución**.
+
+Convertimos a factor de manera manual la variable `Passengers` en primer lugar.
+
+```{r conversion_factor_Passengers}
+cars$Passengers <- as.factor(cars$Passengers)
+```
+
+
+Se debe ahora repetir lo hecho en el apartado anterior.
+
+```{r stepwise_selection_forward_pasfac}
+ajuste_0 <- lm(Price ~ 1 , data = cars) # solo el intercepto
+traza_forward <- step(ajuste_0, scope = Price ~ Type + Price + MPG.city + 
+                        MPG.highway + EngineSize + Horsepower + RPM + 
+                        Rev.per.mile + Fuel.tank.capacity + Passengers 
+                      + Length + Wheelbase + Width + Weight + Origin,  
+                      direction = 'forward', trace = 0)
+```
+
+```{r stepwise_selection_backward_pasfac}
+ajuste_todo <- lm(Price ~ ., data = cars)
+traza_backward <- step(ajuste_todo, direction = 'backward', trace = 0)
+```
+
+```{r stepwise_selection_both_pasfac}
+ajuste_todo <- lm(Price ~ ., data = cars)
+traza_both <- step(ajuste_todo, direction = 'both', trace = 0)
+```
+
+```{r seleccion_mejor_stepwise_pasfac}
+# Obtener los valores de AIC en un vector
+valores_AIC <- c(
+  traza_both$anova$AIC[length(traza_both$anova$AIC)],
+  traza_forward$anova$AIC[length(traza_forward$anova$AIC)],
+  traza_backward$anova$AIC[length(traza_backward$anova$AIC)]
+)
+
+# Obtener el nombre del método con el menor valor de AIC
+metodos <- c("both", "forward", "backward")
+metodo_menor_valor <- metodos[which.min(valores_AIC)]
+
+# El valor mínimo de AIC
+valor_minimo_AIC <- min(valores_AIC)
+```
+
+El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)`.
