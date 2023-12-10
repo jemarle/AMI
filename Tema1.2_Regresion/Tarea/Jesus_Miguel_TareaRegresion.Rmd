@@ -12,6 +12,12 @@ output:
   pdf_document:
     toc: yes
     fig_caption: yes
+  html_notebook: 
+    echo: yes
+    number_sections: no
+    theme: readable
+    toc: yes
+    fig_caption: yes
 params:
   lang: ES
 lang: "`r switch(params$lang, ES = 'es-ES', EN = 'en-US')`"
@@ -526,19 +532,21 @@ cars <- read.csv2("./data/cars.csv", stringsAsFactors = TRUE)
 
 La función `regsubsets()` del paquete `leaps` nos permitirá realizar regresiones por subconjuntos, lo que implica la posibilidad de poder ajustar modelos lineales con todas las combinaciones posibles de un conjunto dado de variables predictoras. Podremos con esta además identificar los valores que toman los modelos según los distintos criterios propuestos ($R^2$, BIC, AIC (llamado aquí CP)). $\\$
 
-A continuación se muestra lo que devuelve esta función al aplicarse a nuestros datos. Obtendremos primeramente una especie de tabla en el que se muestran los mejores modelos (`nbest = 1`) según el número de variables inmiscuidas (de 1 hasta `nvmax`), junto con las variables que este emplea.
+A continuación se muestra lo que devuelve esta función al aplicarse a nuestros datos. Obtendremos primeramente una especie de tabla en el que se muestran los mejores modelos (`nbest = 1`) según el número de variables inmiscuidas (de 1 hasta `nvmax`), junto con las variables que este emplea. Se ha podido comprobar cómo se obtienen mejores resultados si no se tienen en cuenta en los cálculos posibles dependencias cuadráticas en las variables predictoras.
 
 ```{r ajuste.todo, fig.cap = "\\label{fig:ajuste.todo}Valores obtenidos para distintos criterios en el mejor modelo según el número de variables", fig.pos = "H", fig.align = "center"}
 
 # Implementar variables predictoras cuadráticas
-numeric_columns <- colnames(cars)[sapply(cars, is.numeric)]
+numeric_columns <- colnames(cars)[sapply(cars, is.numeric) & colnames(cars) != "Price"]
 variables_cuadraticas <- paste0("I(", numeric_columns, "^2)")
 formula <- as.formula(paste("Price ~", paste(numeric_columns, collapse = "+"), "+", paste(variables_cuadraticas, collapse = "+")))
 
 nvmax <- 10
 
-ajuste.todo <- regsubsets(formula, data = cars, nvmax = nvmax, nbest = 1)
-#ajuste.todo <- regsubsets(Price ~ ., data = cars, nvmax = nvmax, nbest = 1) # si solo se quieren las lineales...
+#ajuste.todo <- regsubsets(formula, data = cars, nvmax = nvmax, nbest = 1) # si queremos incluir variables cuadráticas
+
+
+ajuste.todo <- regsubsets(Price ~ ., data = cars, nvmax = nvmax, nbest = 1) # si solo se quieren las lineales...
 resumen <- summary(ajuste.todo)
 resumen$outmat
 
@@ -565,38 +573,26 @@ par(mfrow=c(1,1))
 
 A la vista de lo obtenido hemos visto adecuado seleccionar el mejor modelo en función de los criterios `CP` o `BIC`, ya que nos permitan reducir algo la complejidad (tendríamos 6 variables en lugar de 10) respecto a si lo hiciéramos con el de `RsqAdj`.
 
-```{r}
-# Obtener el modelo con la mejor métrica BIC
+```{r seleccion_modelo_regsubsets_poly}
+# ESTE CHUNK DE AQUÍ ES SOLO PARA CUANDO SE INCLUYEN
 mejor_modelo_bic <- resumen$which[which.min(resumen$bic), ]
 
-# Obtener nombres de las variables incluidas en el mejor modelo
-variables_incluidas <- names(which(mejor_modelo_bic))
-variables_incluidas <- variables_incluidas[variables_incluidas != "(Intercept)"]
 
-# Crear la fórmula con términos cuadráticos y variables seleccionadas
-formula <- reformulate(variables_incluidas, response = "Price")
+variables_incluidas <- names(which(mejor_modelo_bic))
+variables_incluidas <- variables_incluidas[variables_incluidas != "(Intercept)"] 
+variables_incluidas_arreglado <- gsub("^Type[^_]*", "Type", variables_incluidas)
+variables_incluidas_arreglado <- gsub("^Origin[^_]*", "Origin", variables_incluidas_arreglado)
+
+# Crear la fórmula con términos cuadráticos
+formula <- reformulate(variables_incluidas_arreglado, response = "Price")
 
 # Modelo de regresión lineal múltiple con términos cuadráticos
 modelo_final <- lm(formula, data = cars)
 
-# Resumen del modelo final
+
 summary(modelo_final)
 ```
 
-```{r seleccion_modelo_regsubsets}
-mejor_modelo_bic <- resumen$which[which.min(resumen$bic), ]
-
-variables_incluidas <- names(which(mejor_modelo_bic))
-
-# Arreglos para contener la variable de tipo factor entera y no solo una de sus opciones:
-variables_incluidas_arreglado <- gsub("^Type[^_]*", "Type", variables_incluidas)
-variables_incluidas_arreglado <- gsub("^Origin[^_]*", "Origin", variables_incluidas_arreglado)
-#variables_incluidas_arreglado <- variables_incluidas_arreglado[variables_incluidas_arreglado %in% colnames(cars)]
-
-# Modelo de regresión lineal múltiple obtenido:
-modelo_final <- lm(Price ~ . , data = cars[, c("Price", variables_incluidas_arreglado)])
-summary(modelo_final)
-```
 Las variables que incluye el mejor modelo seleccionado son: {`r variables_incluidas_arreglado`} (resultando significativos sus coeficientes para el modelo, como bien se muestra arriba). Nótese que las variables `Type` y `Origin` han sido consideradas de tipo factor, por lo que, a pesar de que en el mejor modelo obtenido con BIC se seleccionaran solo ciertas categorías, en el modelo seleccionado final debe estar la columna pertinente completa. $\\$
 
 Los resultados obtenidos resultan lógicos si se piensa en el contexto.
@@ -626,7 +622,7 @@ El recorrido se muestra a continuación.
 
 ```{r stepwise_selection_forward}
 ajuste_0 <- lm(Price ~ 1 , data = cars) # solo el intercepto
-traza_forward <- step(ajuste_0, scope = Price ~ Type + Price + MPG.city + 
+traza_forward <- step(ajuste_0, scope = Price ~ Type + MPG.city + 
                         MPG.highway + EngineSize + Horsepower + RPM + 
                         Rev.per.mile + Fuel.tank.capacity + Passengers 
                       + Length + Wheelbase + Width + Weight + Origin,  
@@ -673,9 +669,12 @@ metodo_menor_valor <- metodos[which.min(valores_AIC)]
 
 # El valor mínimo de AIC
 valor_minimo_AIC <- min(valores_AIC)
+
+columnas_modelo <- colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)
+columnas_modelo <- columnas_modelo[columnas_modelo != "Price"]
 ```
 
-El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)`.
+El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r columnas_modelo`.
 
 ## Apartado 3.
 
@@ -695,7 +694,7 @@ cars$Passengers <- as.factor(cars$Passengers)
 ```
 
 
-Se debe ahora repetir lo hecho en el apartado anterior.
+Se debe ahora repetir lo hecho en el apartado anterior (ver código .Rmd para mostrar las trazas.)
 
 ```{r stepwise_selection_forward_pasfac}
 ajuste_0 <- lm(Price ~ 1 , data = cars) # solo el intercepto
@@ -713,7 +712,7 @@ traza_backward <- step(ajuste_todo, direction = 'backward', trace = 0)
 
 ```{r stepwise_selection_both_pasfac}
 ajuste_todo <- lm(Price ~ ., data = cars)
-traza_both <- step(ajuste_todo, direction = 'both', trace = 0)
+traza_both <- step(ajuste_todo, direction = 'both', trace = 1)
 ```
 
 ```{r seleccion_mejor_stepwise_pasfac}
@@ -730,6 +729,110 @@ metodo_menor_valor <- metodos[which.min(valores_AIC)]
 
 # El valor mínimo de AIC
 valor_minimo_AIC <- min(valores_AIC)
+
+columnas_modelo <- colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)
+columnas_modelo <- columnas_modelo[columnas_modelo != "Price"]
 ```
 
-El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r colnames(get(paste("traza_", metodo_menor_valor, sep = ""))$model)`.
+El método seleccionado es el perteneciente a `r metodo_menor_valor`, donde se obtuvo un `AIC` de `r valor_minimo_AIC` y utilizando como variables predictoras `r columnas_modelo`. Ahora que tenemos el mejor modelo podemos responder a las preguntas realizadas.
+
+- ¿Qué % de la varianza de Price explica el modelo?
+
+```{r mostrar_mejor_modelo}
+formula <- reformulate(columnas_modelo, response = "Price")
+model_call <- get(paste("traza_", metodo_menor_valor, sep = ""))$call
+
+mejor_modelo <- eval(model_call)
+
+sum_reg <- summary(mejor_modelo)
+sum_reg
+```
+
+El valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Precio`.
+
+- ¿Podrías depurar el modelo?
+
+Podría aplicar el método de stepwise en su versión `forward` partiendo del modelo actual, tratando de buscar si se percibe alguna mejora añadiendo variables transformadas.
+
+```{r depurar_modelo}
+ajuste_0 <- mejor_modelo
+
+numeric_columns <- colnames(cars)[sapply(cars, is.numeric) & colnames(cars) != "Price"]
+numeric_columns_in_model <- intersect(numeric_columns, columnas_modelo)
+
+# Términos cuadráticos
+variables_cuadraticas <- paste0("I(", numeric_columns_in_model, "^2)")
+
+# Términos cúbicos
+variables_cubicas <- paste0("I(", numeric_columns_in_model, "^3)")
+
+# Términos logarítmicos
+variables_log <- paste0("I(log(", numeric_columns_in_model, "))")
+
+# Fórmula completa añadiendo todo tipo de variables...
+formula <- as.formula(paste("Price ~", paste(columnas_modelo, collapse = "+"), "+",
+                            paste(variables_cuadraticas, collapse = "+"), "+",
+                            paste(variables_cubicas, collapse = "+"), "+",
+                            paste(variables_log, collapse = "+")))
+
+
+traza_forward <- step(ajuste_0, scope = formula,  
+                      direction = 'forward', trace = 1)
+```
+Puede apreciarse que ninguna supone una mejoría de entrada para nuestro modelo, por lo que se corta en la primera iteración. 
+
+
+- ¿Cuál es el efecto de la variable Origin sobre Price?
+
+El mejor modelo (tras el proceso de depuración anterior) resulta entonces en:
+
+```{r}
+columnas_modelo <- colnames(get(paste("traza_", "forward", sep = ""))$model)
+columnas_modelo <- columnas_modelo[columnas_modelo != "Price"]
+
+formula <- reformulate(columnas_modelo, response = "Price")
+model_call <- get(paste("traza_", metodo_menor_valor, sep = ""))$call
+
+mejor_modelo <- eval(model_call)
+
+sum_reg <- summary(mejor_modelo)
+sum_reg
+```
+Tal y como se observa, el mejor modelo obtenido sí tiene presente dicha variable. Al ser una variable categórica esta viene descompuesta en $k - 1$ predictores codificados como 0 o 1 (variables *dummy*). En este caso, al tener 2 categorías dispondría de una sola variable dummy: `OriginUSA`. Puede apreciarse que esta posee un coeficiente significativo y que se estima como negativo, indicando que si el coche es de origen estadounidense la variable `Price` debería tender a ser menor (con el resto de variables constantes).
+
+## Apartado 4.
+
+¿Qué modelo de los apartados anteriores es mejor? Con el que te quedes, realiza el diagnóstico de tu modelo, sin emprender ninguna acción, e indica los problemas que presenta.
+
+**Resolución**.
+
+El mejor modelo obtenido es el de la forma: **`r paste(deparse(model_call), collapse = "")`**. $\\$
+
+Haciendo uso del comando `plot` sobre nuestro objeto que contiene el modelo de regresión obtenemos una serie de gráficos diagnósticos que nos proporcionan información sobre la idoneidad de nuestro modelo.
+
+```{r plot_general_diag, fig.cap = "\\label{fig:plot_general_diag}Gráficos de diagnóstico del mejor modelo obtenido.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+par(mfrow = c(2, 2))
+plot(mejor_modelo)
+```
+Podemos observar en el gráfico de arriba a la izquierda cómo los residuos se colocan alrededor de la línea horizontal de cero, indicando que hay más o menos linealidad. Lo que no parece tan claro es la homocedasticidad, ya que hacia la parte central y final crece un poco la variabilidad. Algo similar se observa en el gráfico de `Scale-Location` con los residuos estandarizados (y en valor absoluto). $\\$
+
+Por otra parte, en el QQ-plot de los residuos estandarizados obtenemos una normalidad prácticamente perfecta, salvando la cola final en la que se aprecian dos puntos que parecen estar dando algo de problema. $\\$
+
+Finalmente, en el gráfico de abajo a la derecha se nos muestran las observaciones que tienen un alto efecto en los coeficientes de regresión y que, por tanto, pueden influir significativamente en la forma del modelo. 
+
+
+A continuación se muestran algunas gráficas de residuos parciales, para tratar de evaluar la contribución individual de cada variable independiente en nuestro modelo. Son los residuos al eliminar cada predictor.
+
+```{r}
+parciales <- residuals(mejor_modelo, type = "partial")
+
+plot(cars$Horsepower, parciales[, "Horsepower"])
+abline(h = 0, col = "gray")
+
+plot(cars$RPM, parciales[, "RPM"])
+abline(h = 0, col = "gray")  
+
+plot(cars$Wheelbase, parciales[, "Wheelbase"])
+abline(h = 0, col = "gray") 
+```
+
