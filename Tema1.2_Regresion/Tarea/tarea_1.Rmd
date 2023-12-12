@@ -12,14 +12,14 @@ library(tidyr)
 ```
 
 ```{r}
-cars <- read.csv("cars.csv", sep = ";", dec = ",")
+cars <- read.csv("cars.csv", sep = ";", dec = ",", stringsAsFactors = T)
 ```
 
 # Ejercicio 1
 
 ```{r}
 variables_numericas <- colnames(cars[sapply(cars, is.numeric)])
-cars_num <- cars %>% select(variables_numericas)
+cars_num <- cars %>% dplyr::select(variables_numericas)
 cor(cars_num$Price,cars_num[,-1])
 ```
 La varaible X más relacionada linealmente (mayor correlación de Pearson) con Price es Horsepower.
@@ -29,7 +29,7 @@ regre <- lm(Price ~ Horsepower, data=cars)
 summary(regre)
 confint(regre, level = 0.90)
 ```
-Vemos como el intercepto es negativo, lo cual en este caso no tendría mucho sentido ya que se correspondería a un precio negativo cuando hay 0 caballos de potencia mientras que la prendiente de la recta ajustada es positiva, lo que indica un aumento del precio de los coches a medida que aumenta su potencia, tal y como cabría esperar. Por otro lado, el p-valor asociado al t-valor del intercepto es mayor que 0.05, por lo que podemos concluir que este coeficiente no es significativamente distinto de cero para un nivel de confianza de 0.05- Por su parte, la pendiente sí presenta un p-valor muy por debajo de 0.05 por lo que es un coeficiente significativamente distinto de cero para este nivel de confianza. El coeficiente de determinación R-cuadrado es 0.6213, lo que significa que este modelo de regresión lineal explica un 62% de la variabilidad de la variable dependiente Precio minetras que in 38% queda sin explicar. Finalmente, el p-valor asociado al estadístico F es también sufucientemente pequeño (< 2.2e-16) como para concluir que al menos un coeficiente del modelo lineal es distinto de cero.
+Vemos como el intercepto es negativo, lo cual en este caso no tendría mucho sentido ya que se correspondería a un precio negativo cuando hay 0 caballos de potencia mientras que la prendiente de la recta ajustada es positiva, lo que indica un aumento del precio de los coches a medida que aumenta su potencia, tal y como cabría esperar. Por otro lado, el p-valor asociado al t-valor del intercepto es mayor que 0.05, por lo que podemos concluir que este coeficiente no es significativamente distinto de cero para un nivel de confianza de 0.05. Por su parte, la pendiente sí presenta un p-valor muy por debajo de 0.05 por lo que es un coeficiente significativamente distinto de cero para este nivel de confianza. El coeficiente de determinación R-cuadrado es 0.6213, lo que significa que este modelo de regresión lineal explica un 62% de la variabilidad de la variable dependiente Precio minetras que in 38% queda sin explicar. Finalmente, el p-valor asociado al estadístico F es también sufucientemente pequeño (< 2.2e-16) como para concluir que al menos un coeficiente del modelo lineal es distinto de cero.
 
 ```{r}
 with(cars,plot(Horsepower,Price,col='blue'))
@@ -60,19 +60,19 @@ Por otro lado, en cuanto a la normalidad de los residuos
 qqnorm(regre$residuals, col='blue', main='')
 qqline(regre$residuals)
 ```
-Podemos considerar que la distribución de los residuos es normal, pues la mayotia de los cuantiles se distribuyen alrededor de la recta normal teórica, siendo los últimos cuantiles los que más se desvían de la distribución normal.
+Podemos considerar que la distribución de los residuos es normal, pues la mayoría de los cuantiles se distribuyen alrededor de la recta normal teórica, siendo los últimos cuantiles los que más se desvían de la distribución normal.
 
 ```{r}
 shapiro.test(regre$residuals)
 ```
-Utilizando el test de normalidad de Shapiro-Wilk obtenemos un p-valor de alrededor de 0.1, que no es suficiente como para rechazar la hipótesis nula de que la distribución es normal para un nivel de significancio de 0.05. Por tanto, podemos considerar que la sitribución de los residuos es normal, y aunque no lo fuera del todo, el modelo lineal es robusto frente a la no normalidad.
+Utilizando el test de normalidad de Shapiro-Wilk obtenemos un p-valor de alrededor de 0.1, que no es suficiente como para rechazar la hipótesis nula de que la distribución es normal para un nivel de significancio de 0.05. Por tanto, podemos considerar que la distribución de los residuos es normal, y aunque no lo fuera del todo, el modelo lineal es robusto frente a la no normalidad.
 
 # Ejercicio 2
 
 ```{r}
 cor(cars$Price,cars$MPG.city)
 ```
-MPG.city y Price presentan una correlación lineal de -0.59. El hecho de que su valor absoluto no sea próximo a 1 indica que la relación puede no ser lineal, mientras que el signo de la correlación indica que una aumento del valor de MPG.city produce una disminución del Precio.
+MPG.city y Price presentan una correlación lineal de -0.59. El hecho de que su valor absoluto no sea muy próximo a 1 indica que la relación puede no ser lineal, mientras que el signo de la correlación indica que una aumento del valor de MPG.city produce una disminución del Precio.
 
 ```{r}
 regre <- lm(Price ~ MPG.city, data=cars) 
@@ -80,7 +80,7 @@ summary(regre)
 confint(regre, level = 0.90)
 ```
 
-El intercepto (Precio cuando MPG.city = 0) es 42 y es significativamente distinto de 0, al igual que la pendiente, Tal y como cabría esperar debido a la correlación negativa entre ambas variables, la pendiente es negativa. El coeficiente de determinación indica que el modelo lineal explica el 35% de la variabilidad de Precio. El p-valor asociado al estadístico F también indica que al menos un coeficiente del modelo es distinto de 0 de forma significativa.
+El intercepto (Precio cuando MPG.city = 0) es 42 y es significativamente distinto de 0, al igual que la pendiente. Tal y como cabría esperar debido a la correlación negativa entre ambas variables, la pendiente es negativa. El coeficiente de determinación indica que el modelo lineal explica el 35% de la variabilidad de Precio. El p-valor asociado al estadístico F también indica que al menos un coeficiente del modelo es distinto de 0 de forma significativa.
 
 ```{r}
 with(cars,plot(MPG.city,Price,col='blue'))
@@ -105,11 +105,11 @@ En la gáfica de Residuos frente a valores predichos podemos ver que la relació
 shapiro.test(regre$residuals)
 ```
 
-El shapiro test en este caso sí nos permite descartar rechazar la hipótesis nula de que la distribución de los residuos en normal para un nivel de significancia de 0.05.
+El shapiro test en este caso sí nos permite rechazar la hipótesis nula de que la distribución de los residuos en normal para un nivel de significancia de 0.05.
 
-En definitiva, no se cumplen las hipótesis de partida del modelo lineal, por lo que no sería lo más apropiado para describir la relación entre ambas variables. En todo caso, podría plantearse la transformación de alguna de las variables con tal de obtener mayor linealidad, homocedasticidad y normalidad. También podría plantearse otro modelo de regresión no lineal como el modelo exponencial, que parece más adecuado para describir la relación entre estas varaibles.
+En definitiva, no se cumplen las hipótesis de partida del modelo lineal, por lo que no sería lo más apropiado para describir la relación entre ambas variables. En todo caso, podría plantearse la transformación de alguna de las variables con tal de obtener mayor linealidad, homocedasticidad y normalidad. También podría plantearse otro modelo de regresión no lineal como el modelo potencial, que parece más adecuado para describir la relación entre estas varaibles.
 
-El modelo exponencial y = a * exp(b * x) puede expresarse como un modelo lineal tomando logaritmos ln(y) = ln(a) + b*ln(x)
+El modelo potencial y = a * x^b puede expresarse como un modelo lineal tomando logaritmos ln(y) = ln(a) + b*ln(x)
 
 ```{r}
 cars$log_MPG.city <- log(cars$MPG.city)
@@ -137,7 +137,7 @@ qqline(regre$residuals)
 shapiro.test(regre$residuals)
 ```
 
-Podemos ver que aplicando el modelo exponencial y expresándilo en términos de un modelo lineal, se cumplen las hipótesis de linealidad, heterocedasticiad y normalidad.
+Podemos ver que aplicando el modelo potencial y expresándolo en términos de un modelo lineal, se cumplen mejor las hipótesis de linealidad, homocedasticiad y normalidad.
 
 100 kilómetros por 12 litros son 19.6 galones por milla.
 
@@ -148,3 +148,316 @@ predict(regre, newdata = data.frame(log_MPG.city = log(19.6)), interval = 'predi
 predict(regre, newdata = data.frame(log_MPG.city = log(19.6)), interval = 'confidence')
 ```
 Se espera que el precio mínimo para los coches que consumen 12 litros a los 100 kilómetros sea 2.41, que es el valor mínimo del intervalo de predicción,
+
+# Ejercicio 3
+
+Cuando consideremos modelos de regresión lineal con normalidad, el uso de los criterios AIC y Cp daría resultados exactamente equivalentes si conociéramos la varianza (ambos criterios difieren en tal caso en una constante). Cuando la varianza es desconocida y ha de ser estimada a partir de los datos, ambos criterios pueden diferir, pero son a efectos prácticos intercambiables. Por tanto usaremos el criterio Cp de Mallows como si estuvieramos aplicando el criterio AIC.
+```{r}
+library(leaps)
+cars <- subset(cars, select = -log_MPG.city)
+sel_lm <- regsubsets(Price ~ . , data = cars, nvmax = 10)
+resumen <- summary(sel_lm)
+resultado <- cbind(resumen$rsq, resumen$adjr2, resumen$cp, resumen$bic)
+colnames(resultado) <- c('Rsq','RsqAdj','Cp','BIC')
+
+par(mfrow = c(1,3))
+
+plot(1:10, resumen$adjr2, xlab = "Número de variables", main = "R-cuadrado ajustado",
+type='b')
+abline(v = which.max(resumen$adjr2), col = 2)
+
+plot(1:10, resumen$cp, xlab = "Número de variables", main = "Cp de Mallows",
+type='b')
+abline(v = which.min(resumen$cp), col = 2)
+
+plot(1:10, resumen$bic, xlab = "Número de variables", main = "BIC",
+type='b')
+abline(v = which.min(resumen$bic), col = 2)
+```
+
+Escogemos el critero BIC, que se optimiza con 6 predictores:
+```{r}
+colnames(resumen$which)[resumen$which[6,]==T]
+```
+Las variables escogidas usando este criterio son: Type, Horsepower, RPM, Wheelbase, Width y Origin.
+
+```{r}
+mejorBIC <- lm(Price ~ Type + Horsepower + RPM + Wheelbase + Width + Origin, data = cars)
+summary(mejorBIC)
+```
+
+Llama la atención que el precio disminuye con la variable RPM, ya que mayores Revoluciones Por Minuto proporcionan mayor potencia y uno esperaría un mayor precio. Por ello, podemos estudiar si RPM es realmente significativa realizando un test F parcial, cuya hipótesis nula es que el coeficiente RPM es cero.
+
+```{r}
+prueba <- update(mejorBIC,~.-RPM)
+anova(prueba, mejorBIC, test = "F")
+```
+En este caso podemos rechazar la hipótesis nula para un nivel de significancia de 0.05 por lo que podemos mantener RPM como predictor.
+
+```{r}
+lm_completo <- lm(Price ~ . , data = cars)
+sel_lm <- step(lm_completo, direction = "both", trace = 0)
+summary(sel_lm)
+```
+
+```{r}
+cars2 <- cars
+cars2$Passengers <- as.factor(cars2$Passengers)
+lm_completo <- lm(Price ~ . , data = cars2)
+sel_lm2 <- step(lm_completo, direction = "both", trace = 0)
+summary(sel_lm2)
+```
+
+El modelo explica el 76% de la varianza de la variable dependiente Precio
+
+Para depurar el modelo podemos en primer lugar comprobar si existe interacción entre el factor Type y el resto de varables numéricas
+```{r}
+prueba1 <- lm(Price ~ Horsepower*Type + RPM +  Wheelbase + Width + Origin, data = cars2)
+summary(prueba1)
+
+prueba2 <- lm(Price ~ Horsepower + RPM*Type +  Wheelbase + Width + Origin, data = cars2)
+summary(prueba2)
+
+prueba3 <- lm(Price ~ Horsepower + RPM +  Wheelbase*Type + Width + Origin, data = cars2)
+summary(prueba3)
+
+prueba4 <- lm(Price ~ Horsepower + RPM +  Wheelbase + Width*Type + Origin, data = cars2)
+summary(prueba4)
+```
+
+Ninguna de las interacciones es significativa y la variabilidad explicada es prácticamente igual por lo que descartamos los modelos anteriores, ya que es preferible tener un modelo con menos parámetros.
+
+También podemos plantearnos agrupar categorías del factor Type como por ejemplo Compact y Small, ya que Small presenta el p-valor más alto y esto podría deberse a que aporta lo mismo que la categoría Compact.
+```{r}
+cars2$Type <- factor(if_else(cars2$Type == 'Small' | cars2$Type == 'Compact', 'Smallsize', cars2$Type))
+cars2$Type <- relevel(cars2$Type, ref = 'Midsize')
+lm_completo <- lm(Price ~ . , data = cars2)
+sel_lm2 <- step(lm_completo, direction = "both", trace = 0)
+summary(sel_lm2)
+```
+Al cambiar la categoría de referencia y agrupar dos categorías en una ahora tenemos dos categorías significativas con prácticamente la misma variabilidad explicada. Para depurar más a fondo el modelo, se podría realizar un diagnóstico del mismo y solucionar posibles problemas de linealidad, homocedasticidad, normalidad, outliers... Esto se llevará a cabo en los próximos apartados.
+
+En lo que respecta al efecto de la variable Origin sobre Price, vemos como los coches fabricados en Estados Unidos son más baratos que los fabricados fuera. Esto tiene sentido ya que importar coches de fuera puede inflar su precio por diversos motivos como impuestos, costes de transporte etc. Esto puede verse en el hecho de que el coeficiente asociado a OriginUSA es negativo, dando a entender que Price es más pequeño para el nivel USA que para el nivel non-USA, que es el nivel de referencia. Concretamente, la diferencia de Precio entre un coche con origen estadounidense y uno importado de fuera es 3.22 según este modelo.
+
+Igual que en el primer apartado, seleccionamos el mejor modelo de acuerdo con el criterio de BIC.
+```{r}
+BIC(mejorBIC)
+BIC(sel_lm)
+BIC(sel_lm2)
+```
+
+El mejor modelo según el criterio BIC viene dado por las variables Horsepower, RPM, Length, Wheelbase, Width y Origin.
+
+```{r}
+par(mfrow = c(2,2))
+plot(sel_lm)
+```
+Para comenzar con el diagnostico del modelo calculamos los residuos studentizados usando la función rstudent()
+```{r}
+res_stu <- rstudent(sel_lm)
+```
+
+Representamos los residuos studentizados frente a los valores predichos para analizar la linealidad y la homocedasticidad del modelo.
+```{r}
+library(ggplot2)
+library(gridExtra)
+ggplot(data = cars, aes(x = fitted(sel_lm), y = res_stu)) +
+geom_point() + geom_smooth(color = "coral",span=0.4) + geom_hline(yintercept = 0) +
+labs(y = "residuos studentizados",
+x = "valores ajustados") +
+theme_bw()
+```
+En este gráfico podemos observar que los residuos no se distribuyen del todo linealmente alrededor del cero, sino que en los extremos tiende a aumentar el valor de los residuos, tal y como se puede observar a partir de la linea de ajuste suave roja. Por otro lado, la variablidad tampoco parece constante sino que parece menor en la parte izquierda y va aumentando en la otra dirección. También cabe destacar la presencia de un posible outlier que puede ser el causante del gran aumento de la tendencia de los residuos en la parte derecha.`
+
+```{r}
+library(lmtest)
+bptest(sel_lm)
+```
+El test de Breusch-Pagan para la homocedasticidad del modelo, si bien nos da un p-valor muy pequeño, no es suficientemente para rechazar la hipótesis nula de que el modelo es homocedástico con un nivel de confianza de 0.05. A pesar del resultado del test, la homocedasticidad del modelo parece todavia mejorable.
+
+```{r}
+parciales <- residuals(sel_lm, type="partial")
+plot(cars$Horsepower, parciales[,1])
+plot(cars$RPM, parciales[,2])
+plot(cars$Wheelbase, parciales[,3])
+plot(cars$Width, parciales[,4])
+plot(cars$Length, parciales[,5])
+plot(cars$Origin, parciales[,6])
+```
+Para analizar los predictores por separado, podemos representar los residuos parciales de cada variable, ya que en estos gráficos cada punto representa el residuo de una observación específica después de haber tenido en cuenta el efecto de las otras variables en el modelo.
+```{r}
+library(car)
+crPlots(sel_lm)
+```
+No identificamos patrones no lineales ni viaolaciones de la homocedasticidad en estos gráficos
+
+A continuación analizamos la normalidad de los residuos studentizados
+```{r}
+qqnorm(res_stu)
+qqline(res_stu,col="red")
+```
+```{r}
+shapiro.test(res_stu)
+```
+El p-valor del Shapiro-Wilk test de normalidad es muy pequeño e indica que la distribución de los residuos no es normal. Esto puede verse en la gráfica de los cuantiles de los residuos frente a los cuantiles teóricos de una distribución normal, ya que en los extremos se alejan bastante de la distribución normal, especialmente el último cuantil de la muestra. Falla por tanto la normalidad del modelo.
+
+Ahora pasamos a nalizar posibles outliers, que serán aquellos para los que el residuo studentizado tiene un valor mayor a 3.
+```{r}
+cars[abs(res_stu) > 3,]
+```
+Obtenemos un outlier, correspondiente a la observación 59, el cuál ya habíamos observado previamente en la grafica de residuos studentizados vs. valores predichos de la variable dependiente.
+
+Ahora podemos averiguar si este outlier es una información influyente. Para ello, en primer lugar representamos la distancia de Cook, que es una medida de la influencia de una observación en la estimación de los coeficientes del modelo, frente a los valores ajustados
+```{r}
+n<-nrow(cars)
+p<-ncol(cars)
+plot(fitted(sel_lm), cooks.distance(sel_lm), main="Distancia de Cook vs fitted")
+abline(h = 4/(n-p-1), col="red", lwd=1)
+```
+
+```{r}
+boxplot(cooks.distance(sel_lm))
+```
+```{r}
+summary(cooks.distance(sel_lm))
+```
+vemos como hay dos valores con distancia de Cook especialmente grandes, siendo el valor máximo de 0.408 mientras que la mediana es 0.0027. Si bien el consenso teórico es que una distancia de Cook lo bastante grande si es mayor que uno, podemos considerar que estos valores (en especial el máximo) son suficientemente grandes como para ser analizados individualmente.
+
+A continuación, usamos la funión de influencePlot. Esta función representa los residuos studentizados frente a los hat-values (valores de leverage), que son medidas que indican cuánto una observación específica influye en la estimación de sus propios valores ajustados y con un código tamaño y color dado por la distancia de Cook.
+```{r}
+influencePlot(sel_lm)
+```
+Vemos como el outlier que habíamos localizado, correspondiente a la observación 59, es una observación influyente con la mayor distancia de Cook.
+```{r}
+summary(influence.measures(sel_lm))
+```
+Las observaciones influyentes dadas por la función influence.measures también incluyen este outlier, que además es la observación que presenta mayor número de valores significativos para los DfBetas (dfb). Las DfVetas muestran las diferencias en los coeficientes estimados al excluir la observación, por lo que este outlier podría estar afectando bastante al modelo.
+
+Finalmente, vamos a analizar la colinealidad de los predictores
+```{r}
+pairs(cars[,c('Horsepower','RPM','Length','Wheelbase','Width')])
+```
+Representando por pares las variables numéricas de nuestro modelo vemos que existe una relación lineal entre varias variables, especialmente entre las variables Length, Wheelbase y Width. Esro tiene bastante sentido ya que es razonable que la distancia (a lo largo) entre las ruedas, que se corresponde a la variable Wheelbase, aumente con la longitud del coche (Length), al igual que coches más largos sean también más anchos para mantener una cierta proporción. En cualquier caso, es cocherente que las dimensiones de los coches mantengan una determinada proporción por motivos de diseño, y esto se refleja en una relación entre estas variables.
+```{r}
+cor(cars[,c('Price','Horsepower','RPM','Length', 'Wheelbase','Width')])
+```
+Tal y como reflejaban las gráficas, la correlación entre estas variables es muy alta, siendo la mayor correlación entre las variables Wheelbase y Length, lo cuál tiene sentido por lo explicado anteriormente. No obstante, la correlación entre Width y Length es prácticamente igual que la de Length y Wheelbase, y además Width presenta una menor correlación con Price que Wheelbase y una mayor correlación con el resto de variables.
+
+Ahora para calcular la multicolinealidad, calculamos en factor de inflación de la varianza (VIF)
+```{r}
+vif(sel_lm)
+```
+Sumado a la alta correlación de la variable Width con el resto de variables, tenemos que la variable Width es la que tiene el VIF más alto, y el único por encima de 5, por lo que la multicolinealidad es significativa.
+
+
+En primer lugar, para mejorar la homocedasticidad del modelo podemos realizar alguna transformación sobre la variable dependiente. En conceto vamos a buscar una transformación de Box-Cox.
+```{r}
+library(MASS)
+box_cox_data <- boxcox(sel_lm, lambda = seq(-2,2, length = 10))
+box_cox_data$x[which.max(box_cox_data$y)]
+```
+En este caso la lambda que maximiza la verosimilitud sería -0.18. Este es un valor bastante próximo a 0 y en las transformaciones de Box-Cox se toma el logaritmo cuando lambda tiende a cero. Por tanto, por simplicidad podemos tomar directamente una transformación logarítmica, que además tiene una interpretación más directa.
+
+Por otro lado, eliminamos la observación 59, que es un outlier y una observación influyente que puede estar afectando demasiado a los coeficietes del modelo.
+
+Finalmente, como hemos visto que Width presenta una alta correlación con otras variables como Length y Wheelbase y una alta multicolinealidad y podría estar aportando información redundante, nos planteamos un modelo sin esta variable.
+
+```{r}
+cars3 <- cars[-59,]
+modelo_mod <- lm(log(Price) ~ Horsepower + RPM + Length + Wheelbase + Origin, data = cars3)
+summary(modelo_mod)
+```
+
+Ahora vamos a comprobar si estas modificaciones han mejorado los problemas que encontramos
+```{r}
+res_stu <- rstudent(modelo_mod)
+library(ggplot2)
+library(gridExtra)
+ggplot(data = cars3, aes(x = fitted(modelo_mod), y = res_stu)) +
+geom_point() + geom_smooth(color = "coral",span=0.4) + geom_hline(yintercept = 0) +
+labs(y = "residuos studentizados",
+x = "valores ajustados") +
+theme_bw()
+```
+Ahora los residuos studentizados parecen distribuirse de forma más uniforme entorno al cero y la variablidad también es más constante. La ausencia del outlier de la observación 59 también proporciona mejor resultado en la parte derecha del gráfico.
+
+```{r}
+bptest(modelo_mod)
+```
+Ahora el test de homocedasticidad proporciona un p-valor bastante más alto, lo que confirma la mejora en este aspecto.
+
+```{r}
+crPlots(modelo_mod)
+```
+
+Los residuos parciales siguen sin mostrar grandes problemas de linealidad ni homocedasticidad.
+
+Ahora podemos comprobar de nuevo la normalidad de los residuos studentizados.
+```{r}
+qqnorm(res_stu)
+qqline(res_stu,col="red")
+```
+
+```{r}
+shapiro.test(res_stu)
+```
+El Shapiro-Wilk test ahora no nos permite rechazar la hipótesis nula de que la distribución es normal con un nivel de significancia de 0.05. Si bien los cuantiles de los residuos studentizados todavía presentan desviaciones en los extremos, estas desviaciones son algo menos pronunciadas. Sobre todo ya no observamos ese valor claramente más desviado que el resto, que presumiblemente se correspondía al outlier eliminado y empeoraba bastante la normalidad de los residuos.
+
+Analizamos ahora los outliers del nuevo modelo
+```{r}
+cars3[abs(res_stu) > 3,]
+res_stu[abs(res_stu) > 3]
+```
+
+Encontramos un outlier correspondiente a la observación. Nuesto criterio para detectar outliers es que el valor absoluto del residuo studentizado sea mayor que 3, mientras que este outlier presenta un valor absoluto de 3.02, por lo que estaría en el límite según este criterio y considerarlo un outlier de primeras podría ser demasiado arbitrario. Ahora analizaremos más en porfuncidad este posible outlier, determinando si es una observación influyente.
+
+```{r}
+n<-nrow(cars3)
+p<-ncol(cars3)
+plot(fitted(modelo_mod), cooks.distance(modelo_mod), main="Distancia de Cook vs fitted")
+abline(h = 4/(n-p-1), col="red", lwd=1)
+```
+
+```{r}
+boxplot(cooks.distance(modelo_mod))
+```
+
+```{r}
+summary(cooks.distance(modelo_mod))
+```
+En esta ocasión ya no encontramos observaciones con una distancia de Cook tan grande como antes, sino que ahora el valor máximo no llega a 0.1.
+
+```{r}
+influencePlot(modelo_mod)
+```
+Si bien la distancia de Cook de la observación 58 es de las más grandes en comparación al resto, en términos absolutos la distancia de Cook no es elevada para esta observación. Además su Hat-Value, otra medida de influencia, tampoco es elevado.
+
+```{r}
+summary(influence.measures(modelo_mod))
+```
+La función influence.measures muestra que esta observación tampoco afecta de forma importante a los coeficientes, ya que los DfBetas no son significativos. Por tanto, podemos conservar esta observación, ya que si bien el criterio utilizado la indica como outlier, no tiene una influencia desmesurada en nuestro modelo por lo que no debería ser un problema.
+
+Finalmente, vamos a analizar la colinealidad
+```{r}
+pairs(cars3[,c('Horsepower','RPM','Length','Wheelbase')])
+```
+
+```{r}
+cor(cars3[,c('Price','Horsepower','RPM','Length', 'Wheelbase')])
+```
+Obviamente las correlaciones entre las variables se mantienen iguales ya que sólo hemos eliminado una observación de nuestro conjunto de datos.
+
+```{r}
+vif(modelo_mod)
+```
+Por otro lado, al eliminar la variable Width del modelo, ya no tenemos nigún factor de inflación de la varinza por encima de 5 y que pudiera ser preocupante.
+
+En definitiva, con las modificaciones del modelo se han podido solucionar los problemas de homocedasticidad, normalidad de los residuos, además de la colinealidad de las variables del modelo, obteniendo prácticamente la misma varianza explicada.
+
+Con este modelo podemos predecir ahora el Precio a partir de la mediana de los predictores del modelo. En el caso de la variable categórica Origin, tomaremos la moda.
+```{r}
+x0 <- data.frame(Horsepower = median(cars3$Horsepower), RPM = median(cars3$RPM), Length = median(cars3$Length), Wheelbase = median(cars3$Wheelbase), Origin = levels(cars3$Origin)[which.max(table(cars3$Origin))])
+
+predict(modelo_mod, newdata = x0)
+```
+El precio predecido por el modelo es de 2.73
