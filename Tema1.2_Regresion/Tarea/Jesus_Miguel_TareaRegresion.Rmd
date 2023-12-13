@@ -752,10 +752,12 @@ El valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_
 
 - ¿Podrías depurar el modelo?
 
-Podría aplicar el método de stepwise en su versión `forward` partiendo del modelo actual, tratando de buscar si se percibe alguna mejora añadiendo variables transformadas.
+Podría aplicar el método de stepwise en su versión `forward` partiendo del modelo actual, tratando de buscar si se percibe alguna mejora añadiendo variables transformadas. Además, introduciré una transformación logarítmica para la variable `Price` también.
 
 ```{r depurar_modelo}
-ajuste_0 <- mejor_modelo
+formula <- reformulate(columnas_modelo, response = "log(Price)") # para meter logaritmo
+
+ajuste_0 <- lm(formula, data = cars) # metiendo el logaritmo mi modelo
 
 numeric_columns <- colnames(cars)[sapply(cars, is.numeric) & colnames(cars) != "Price"]
 numeric_columns_in_model <- intersect(numeric_columns, columnas_modelo)
@@ -770,7 +772,7 @@ variables_cubicas <- paste0("I(", numeric_columns_in_model, "^3)")
 variables_log <- paste0("I(log(", numeric_columns_in_model, "))")
 
 # Fórmula completa añadiendo todo tipo de variables...
-formula <- as.formula(paste("Price ~", paste(columnas_modelo, collapse = "+"), "+",
+formula <- as.formula(paste("log(Price) ~", paste(columnas_modelo, collapse = "+"), "+",
                             paste(variables_cuadraticas, collapse = "+"), "+",
                             paste(variables_cubicas, collapse = "+"), "+",
                             paste(variables_log, collapse = "+")))
@@ -779,6 +781,7 @@ formula <- as.formula(paste("Price ~", paste(columnas_modelo, collapse = "+"), "
 traza_forward <- step(ajuste_0, scope = formula,  
                       direction = 'forward', trace = 1)
 ```
+
 Puede apreciarse que ninguna supone una mejoría de entrada para nuestro modelo, por lo que se corta en la primera iteración. 
 
 
@@ -798,6 +801,7 @@ mejor_modelo <- eval(model_call)
 sum_reg <- summary(mejor_modelo)
 sum_reg
 ```
+
 Tal y como se observa, el mejor modelo obtenido sí tiene presente dicha variable. Al ser una variable categórica esta viene descompuesta en $k - 1$ predictores codificados como 0 o 1 (variables *dummy*). En este caso, al tener 2 categorías dispondría de una sola variable dummy: `OriginUSA`. Puede apreciarse que esta posee un coeficiente significativo y que se estima como negativo, indicando que si el coche es de origen estadounidense la variable `Price` debería tender a ser menor (con el resto de variables constantes).
 
 ## Apartado 4.
