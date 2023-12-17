@@ -35,7 +35,7 @@ header-includes:
 # Configuración general de chunks
 library(knitr)
 options(width = 100)
-knitr::opts_chunk$set(echo = F, message = T, error = T, warning = F, comment = NA, dpi = 100, tidy = F, cache.path = '.cache/',  fig.path = './figure/', include = T, fig.cap = "", fig.width = 6, fig.height = 4.5)
+knitr::opts_chunk$set(echo = F, message = T, error = T, warning = F, comment = NA, dpi = 100, tidy = F, cache.path = '.cache/',  fig.path = './figure/', include = T, fig.cap = "", fig.width = 6, fig.height = 4.3)
 ```
 
 ```{r librerias, message = F, include = T, echo = F}
@@ -229,11 +229,17 @@ legend("topleft", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"
 ```
 
 ```{r graph_logres, fig.cap = "\\label{fig:graph_logres}Gráfico de residuos en nuestro modelo tras la transformación logarítmica", fig.pos = "H", fig.align = "center"}
-plot(logreg$fitted.values, logreg$residuals, col = 'blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos en modelo logarítmico")
+plot(logreg$fitted.values, logreg$residuals, col = 'blue', xlab = 'Precios predichos', ylab = 'Residuos', main = "Gráfica de Residuos en modelo logarítmico")
 abline(h = 0,lty = 2)
 ```
 
-Puede observarse cómo con el modelo logarítmico se ha podido disminuir ligeramente la homocedasticidad, en el sentido de que no están tan agrupados los puntos iniciales entre sí. 
+Puede observarse cómo con el modelo logarítmico se ha podido disminuir ligeramente la heterocedasticidad, en el sentido de que no están tan agrupados los puntos iniciales entre sí.
+
+```{r bptest_14}
+bptest_mod <- bptest(logreg)
+bptest_mod
+```
+Aún así, el p-valor asociado vemos que no es suficientemente alto, por lo que implicaría tener heterocedasticidad según este test.
 
 
 ```{r qqlogres, fig.cap = "\\label{fig:qq_logres}QQ-Plot de los residuos en nuestro modelo con transformación logarítmica", fig.pos = "H", fig.align = "center"}
@@ -243,7 +249,7 @@ qqline(logreg$residuals)
 logshap <- shapiro.test(logreg$residuals)
 logshap
 ```
-En este caso obtenemos que nuestra distribución de residuos se adapta más a una distribución normal, viéndose además reflejado esto en el shapiro test donde se obtiene un p-valor de `r logshap` > 0.05. Así pues, no puede rechazarse la hipótesis nula de normalidad.
+En este caso obtenemos que nuestra distribución de residuos se adapta más a una distribución normal, viéndose además reflejado esto en el shapiro test donde se obtiene un p-valor de `r logshap$p.value` > 0.05. Así pues, no puede rechazarse la hipótesis nula de normalidad.
 
 # Ejercicio 2.
 
@@ -409,7 +415,7 @@ confint(logreg, level = 0.90)
 ```
 Observamos ya una subida en el valor de $R^2$:`r sum_logreg$r.squared`, indicando que este modelo puede ajustarse de una mejor manera a nuestros datos.
 
-```{r graph_logmpg_logprice, fig.cap = "\\label{fig:graph_logmpg_logprice}Gráfico de dispersión y recta de regresión para nuestro modelo potencial", fig.pos = "H", fig.align = "center"}
+```{r graph_logmpg_logprice, fig.cap = "\\label{fig:graph_logmpg_logprice}Gráfico de dispersión y recta de regresión para nuestro modelo potencial", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 
 # Crear el gráfico de dispersión
 with(cars, plot(log_MPG.city, log(Price), col = 'blue', xlab = 'log(MPG.city / mpg)', ylab = 'log(Price / 1000 $)'))
@@ -432,16 +438,16 @@ lines(puntos_log_mpg.city$log_MPG.city, bandas[, 3], col = 'black') # Límite su
 legend("topright", legend = c("Recta de Regresión", "Bandas de Confianza al 90%"),
        col = c("red", "black"), lty = c(1, 2))
 ```
-```{r graph_logmpg_res, fig.cap = "\\label{fig:graph_mpg_res}Gráfico de residuos en nuestro nuevo modelo potencial", fig.pos = "H", fig.align = "center"}
-plot(logreg$fitted.values, logreg$residuals, col='blue', xlab = 'Precios predichos / 1000 $', ylab = 'Residuos / 1000 $', main = "Gráfica de Residuos")
+```{r graph_logmpg_res, fig.cap = "\\label{fig:graph_mpg_res}Gráfico de residuos en nuestro nuevo modelo potencial", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
+plot(logreg$fitted.values, logreg$residuals, col='blue', xlab = 'Precios predichos', ylab = 'Residuos', main = "Gráfica de Residuos")
 abline(h = 0, lty = 2)
 ```
 Vemos cómo el problema de la heterocedasticidad se ha ido en gran medida, al igual que el de la linealidad. $\\$
 
 En cuanto a la normalidad de los residuos podemos aplicar el contraste que nos ofrece el shapiro test nuevamente, obteniendo:
 
-```{r qqlogresmpg, fig.cap = "\\label{fig:qq_logresmpg}QQ-Plot de los residuos en nuestro modelo con transformación potencial", fig.pos = "H", fig.align = "center"}
-qqnorm(logreg$residuals, col='blue', main = 'QQ-Plot de los Residuos en transformación logarítmica')
+```{r qqlogresmpg, fig.cap = "\\label{fig:qq_logresmpg}QQ-Plot de los residuos en nuestro modelo con transformación potencial", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
+qqnorm(logreg$residuals, col='blue', main = 'QQ-Plot de los Residuos con la transformación potencial.')
 qqline(logreg$residuals)
 
 logshap <- shapiro.test(logreg$residuals)
@@ -478,7 +484,7 @@ log_mpg_value <- log(mpg_value)
 # Predicción por nuestro modelo
 prediction_original_scale <- exp(predict(logreg, newdata = data.frame(log_MPG.city = log_mpg_value), interval = 'confidence'))
 
-cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es",
+cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es \n",
     round(prediction_original_scale[1], 3), "con un intervalo de confianza:", 
     "(", round(prediction_original_scale[2], 3), ",", round(prediction_original_scale[3], 3), ").")
 ```
@@ -491,7 +497,7 @@ log_mpg_value <- log(mpg_value)
 # Predicción por nuestro modelo
 prediction_original_scale <- exp(predict(logreg, newdata = data.frame(log_MPG.city = log_mpg_value), interval = 'prediction'))
 
-cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es",
+cat("Para un MPG.city de", mpg_value, "mpg, la estimación puntual de Price (en miles de dólares) es \n",
     round(prediction_original_scale[1], 3), "con un intervalo de predicción:", 
     "(", round(prediction_original_scale[2], 3), ",", round(prediction_original_scale[3], 3), ").")
 ```
@@ -575,7 +581,7 @@ A la vista de lo obtenido hemos visto adecuado seleccionar el mejor modelo en fu
 
 ```{r seleccion_modelo_regsubsets_poly}
 # ESTE CHUNK DE AQUÍ ES SOLO PARA CUANDO SE INCLUYEN
-mejor_modelo_bic <- resumen$which[which.min(resumen$bic), ]
+mejor_modelo_bic <- resumen$which[which.min(resumen$cp), ]
 
 
 variables_incluidas <- names(which(mejor_modelo_bic))
@@ -627,9 +633,9 @@ Existen alternativas que mezclarían los dos métodos.
 
 **Forward stepwise**.
 
-El recorrido se muestra a continuación.
+El recorrido se muestra a continuación (Ver código, en el PDF ocupa mucho).
 
-```{r stepwise_selection_forward}
+```{r stepwise_selection_forward, include = F}
 ajuste_0 <- lm(Price ~ 1 , data = cars) # solo el intercepto
 traza_forward <- step(ajuste_0, scope = Price ~ Type + MPG.city + 
                         MPG.highway + EngineSize + Horsepower + RPM + 
@@ -642,9 +648,9 @@ Vemos que el mejor modelo al que acaba llegando el proceso iterativo en modo `fo
 
 **Backward stepwise**.
 
-El recorrido se muestra a continuación.
+El recorrido se muestra a continuación (Ver código, en el PDF ocupa mucho).
 
-```{r stepwise_selection_backward}
+```{r stepwise_selection_backward, include = F}
 ajuste_todo <- lm(Price ~ ., data = cars)
 traza_backward <- step(ajuste_todo, direction = 'backward')
 ```
@@ -653,7 +659,9 @@ Vemos que el mejor modelo al que acaba llegando el proceso iterativo en modo `ba
 
 **Método híbrido**.
 
-```{r stepwise_selection_both}
+El recorrido se muestra a continuación (Ver código, en el PDF ocupa mucho).
+
+```{r stepwise_selection_both, include = F}
 ajuste_todo <- lm(Price ~ ., data = cars)
 traza_both <- step(ajuste_todo, direction = 'both')
 ```
@@ -706,21 +714,21 @@ cars2$Passengers <- as.factor(cars2$Passengers)
 
 Se debe ahora repetir lo hecho en el apartado anterior (ver código .Rmd para mostrar las trazas.)
 
-```{r stepwise_selection_forward_pasfac}
+```{r stepwise_selection_forward_pasfac, include = F}
 ajuste_0 <- lm(Price ~ 1 , data = cars2) # solo el intercepto
 traza_forward <- step(ajuste_0, scope = Price ~ Type + Price + MPG.city + 
                         MPG.highway + EngineSize + Horsepower + RPM + 
                         Rev.per.mile + Fuel.tank.capacity + Passengers 
                       + Length + Wheelbase + Width + Weight + Origin,  
-                      direction = 'forward', trace = 0)
+                      direction = 'forward', trace = 1)
 ```
 
-```{r stepwise_selection_backward_pasfac}
+```{r stepwise_selection_backward_pasfac, include = F}
 ajuste_todo <- lm(Price ~ ., data = cars2)
-traza_backward <- step(ajuste_todo, direction = 'backward', trace = 0)
+traza_backward <- step(ajuste_todo, direction = 'backward', trace = 1)
 ```
 
-```{r stepwise_selection_both_pasfac}
+```{r stepwise_selection_both_pasfac, include = F}
 ajuste_todo <- lm(Price ~ ., data = cars2)
 traza_both <- step(ajuste_todo, direction = 'both', trace = 1)
 ```
@@ -832,7 +840,7 @@ Finalmente, en el gráfico de abajo a la derecha se nos muestran las observacion
 
 Representamos los residuos studentizados frente a los valores predichos para analizar la linealidad y la homocedasticidad del modelo.
 
-```{r res_stu, fig.cap = "\\label{fig:res_stu}Residuos estudentizados para nuestro modelo.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r res_stu, fig.cap = "\\label{fig:res_stu}Residuos estudentizados para nuestro modelo.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 res_stu <- rstudent(mejor_modelo)
 
 ggplot(data = cars, aes(x = fitted(mejor_modelo), y = res_stu)) +
@@ -862,7 +870,7 @@ No se identifican patrones no lineales ni violaciones de la homocedasticidad en 
 
 Los residuos studentizados se muestran a continuación, junto con el test de shapiro para determinar de forma algo más rigurosa si pueden considerarse normales o no.
 
-```{r normal_res_stu, fig.cap = "\\label{fig:normal_res_stu}Normalidad en los residuos studentizados.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r normal_res_stu, fig.cap = "\\label{fig:normal_res_stu}Normalidad en los residuos studentizados.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 qqnorm(res_stu)
 qqline(res_stu,col="red")
 ```
@@ -894,7 +902,7 @@ D_i > \frac{4}{n - p - 1},
 
 siendo $n$ el número de muestras, $p$ el número de coeficientes estimados en el modelo (incluyendo el intercepto).
 
-```{r distcook, fig.cap = "\\label{fig:distcook}Distancias de Cook para los valores ajustados en nuestro modelo..", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r distcook, fig.cap = "\\label{fig:distcook}Distancias de Cook para los valores ajustados en nuestro modelo..", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 n <- nrow(cars2)
 p <- nrow(sum_reg$coefficients) # número de parámetros en el modelo.
 
@@ -909,19 +917,21 @@ sum_cook <- summary(cooks.distance(mejor_modelo))
 sum_cook
 ```
 
-vemos como hay dos valores con distancia de Cook especialmente grandes, siendo el valor máximo de `r sum_cook["Max."]` mientras que la mediana es `r sum_cook["Median"]`. Si bien el consenso teórico es que una distancia de Cook lo bastante grande si es mayor que uno, podemos considerar que estos valores (en especial el máximo) son suficientemente grandes como para ser analizados individualmente.
+Vemos como hay dos valores con distancia de Cook especialmente grandes, siendo el valor máximo de `r sum_cook["Max."]` mientras que la mediana es `r sum_cook["Median"]`. Si bien el consenso teórico es que una distancia de Cook lo bastante grande si es mayor que uno, podemos considerar que estos valores (en especial el máximo) son suficientemente grandes como para ser analizados individualmente.
 
 A continuación, usamos la función de `influencePlot`. Esta función representa los residuos studentizados frente a los `hat-values` (valores de `leverage`), que son medidas que indican cuánto una observación específica influye en la estimación de sus propios valores ajustados y con un código tamaño y color dado por la distancia de Cook.
 
-```{r influencePlot, fig.cap = "\\label{fig:influencePlot}Gráfico de influencia para nuestro modelo (Distancia de cook y leverage).", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r influencePlot, fig.cap = "\\label{fig:influencePlot}Gráfico de influencia para nuestro modelo (Distancia de cook y leverage).", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 infPlot <- influencePlot(mejor_modelo)
 infPlot
 ```
+
 Vemos como el outlier que habíamos localizado, correspondiente a la observación 59, es una observación influyente con la mayor distancia de Cook. Un resumen de las medidas de influencias se muestra a continuación.
 
 ```{r influence_measures}
 summary(influence.measures(mejor_modelo))
 ```
+
 Las observaciones influyentes dadas por la función influence.measures también incluyen este outlier, que además es la observación que presenta mayor número de valores significativos para los DfBetas (dfb). Las DfBetas muestran las diferencias en los coeficientes estimados al excluir la observación, por lo que este outlier podría estar afectando bastante al modelo. $\\$
 
 Finalmente, vamos a analizar la colinealidad de los predictores. $\\$
@@ -934,7 +944,7 @@ La colinealidad es cuando dos o más predictores están muy correlacionados. Se 
 
 Veamos primero gráficos por pares para las variables presentes en nuestro modelo:
 
-```{r ggpairs_modelo, fig.cap = "\\label{fig:pairs}Gráficos por pares para las variables numéricas presentes en nuestro modelo.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r ggpairs_modelo, fig.cap = "\\label{fig:pairs}Gráficos por pares para las variables numéricas presentes en nuestro modelo.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 cols_to_plot <- c('Horsepower', 'RPM', 'Width', 'Wheelbase')
 ggpairs(cars2[, cols_to_plot], progress = FALSE)
 ```
@@ -942,12 +952,13 @@ ggpairs(cars2[, cols_to_plot], progress = FALSE)
 Representando por pares las variables numéricas de nuestro modelo vemos que existe una relación lineal entre varias variables, especialmente entre las variables `Wheelbase` y `Width`. Esto era de esperar, ya que la distancia entre ruedas traseras y delanteras intuitivamente puede estar relacionada con la anchura del propio vehículo. Es coherente que las dimensiones de los coches mantengan una determinada proporción por motivos de diseño, reflejándose en esta relación.
 
 
-```{r cor_modelo}
+```{r cor_modelo, fig.cap = "\\label{fig:cor_modelo}Mapa de correlaciones para las variables numéricas en el modelo.", fig.pos = "H", fig.align = "center", fig.width = 3.5, fig.height = 2.5}
 cor(cars2[, cols_to_plot])
 
 correlation_matrix <- cor(cars2[, cols_to_plot])
 ggcorrplot(correlation_matrix)
 ```
+
 Tal y como reflejaban las gráficas, la correlación entre estas variables es algo alta, siendo la mayor correlación entre las variables `Wheelbase` y `Width`, lo cual tiene sentido por lo explicado anteriormente. 
 
 Para ver la multicolinealidad, calculamos el factor de inflación de la varianza (`VIF`). El VIF se calcula para cada variable independiente en nuestro modelo y proporciona una medida de cuánto aumenta la varianza de un coeficiente estimado debido a la multicolinealidad con las otras variables predictoras. La expresión es la siguiente:
@@ -982,10 +993,11 @@ g(y | \lambda) =
 \end{cases}
 \]
 
-```{r boxcox, fig.cap = "\\label{fig:boxcox}Gráfica para estimar el valor de lambda necesario en la transformación Box-cox.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r boxcox, fig.cap = "\\label{fig:boxcox}Gráfica para estimar el valor de lambda necesario en la transformación Box-cox.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 box_cox_data <- boxcox(mejor_modelo, lambda = seq(-2, 2, length = 10))
 box_cox_data$x[which.max(box_cox_data$y)]
 ```
+
 En este caso la lambda que maximiza la verosimilitud sería -0.22. Este es un valor bastante próximo a 0 y en las transformaciones de Box-Cox se toma el logaritmo cuando lambda tiende a cero. Por tanto, por simplicidad podemos tomar directamente una transformación logarítmica, que además tiene una interpretación más directa. Se comparará también con el valor que se obtendría para el $R^2$ ajustado con la transformación exacta. $\\$
 
 Por otro lado, eliminamos la observación 59, que es un outlier y una observación influyente que puede estar afectando demasiado a los coeficietes del modelo.
@@ -1003,6 +1015,7 @@ cars3 <- cars[-59,]
 modelo_mod_box_width <- lm((Price^(-0.22) - 1) / -0.22 ~ Type + Horsepower + Width +  RPM + Wheelbase + Origin, data = cars3)
 summary(modelo_mod_box_width)
 ```
+
 No consideramos que merezca la pena complicar tanto el modelo por una ganancia tan escasa en el $R^2$ ajustado, por lo que continuaremos con la transformación logarítmica. Ahora bien, pasamos ahora a ver qué sucede si quitamos la variable predictora `Width`.
 
 ```{r nuevo_modelo_log}
@@ -1013,7 +1026,7 @@ summary(modelo_mod_log)
 Observamos una caída en el valor de $R^2$ ajustado. Por tanto, preferimos continuar capturando en nuestro modelo dicha variable predictora.
 
 ```{r asignacion_modelo_modificado}
-modelo_mod <- modelo_mod_log_width
+modelo_mod <- modelo_mod_log
 sum_reg_mod <- summary(modelo_mod)
 ```
 
@@ -1023,12 +1036,13 @@ Empezamos mostrando el gráfico general para el diagnóstico con este nuevo mode
 par(mfrow = c(2, 2))
 plot(modelo_mod)
 ```
+
 Puede observarse a simple vista que la gráfica de residuos frente a valores ajustados ha mejorado.
 
 
 Veamos las cosas con mayor detalle.
 
-```{r res_modelo_mod, fig.cap = "\\label{fig:res_modelo_mod}Residuos estudentizados para nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r res_modelo_mod, fig.cap = "\\label{fig:res_modelo_mod}Residuos estudentizados para nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 res_stu <- rstudent(modelo_mod)
 
 ggplot(data = cars3, aes(x = fitted(modelo_mod), y = res_stu)) +
@@ -1055,7 +1069,7 @@ Los residuos parciales siguen sin mostrar grandes problemas de linealidad ni hom
 
 Pasamos a comprobar de nuevo la normalidad de los residuos studentizados.
 
-```{r normal_res_stu_mod, fig.cap = "\\label{fig:normal_res_stu_mod}Normalidad en los residuos studentizados.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r normal_res_stu_mod, fig.cap = "\\label{fig:normal_res_stu_mod}Normalidad en los residuos studentizados.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 qqnorm(res_stu)
 qqline(res_stu,col="red")
 ```
@@ -1078,7 +1092,7 @@ cars3[names(outliertest_new$p), ]
 ```
 Esta vez no se han encontrado outliers con el test de Bonferroni, como era de esperar. Aún así, la función `outlierTest()` ha retornado el valor que mayor residuo studentizado posee. Vemos que es ligerísimamente superior a 3. Por tanto, considerarlo como un outlier puede ser demasiado arbitrario. Analizamos ahora si este posible outlier puede ser una observación influyente.
 
-```{r distcook_new, fig.cap = "\\label{fig:distcook_new}Distancias de Cook para los valores ajustados en nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 7, fig.height = 5.5}
+```{r distcook_new, fig.cap = "\\label{fig:distcook_new}Distancias de Cook para los valores ajustados en nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 n <- nrow(cars3)
 p <- nrow(sum_reg_mod$coefficients)
 
@@ -1093,41 +1107,74 @@ sum_cook <- summary(cooks.distance(modelo_mod))
 sum_cook
 ```
 
-
 En esta ocasión ya no encontramos observaciones con una distancia de Cook tan grande como antes, sino que ahora el valor máximo se queda en `r sum_cook["Max."].
 
-```{r}
-influencePlot(modelo_mod)
+```{r influencePlot_new, fig.cap = "\\label{fig:influencePlot_new}Gráfico de influencia para nuestro modelo modificado(Distancia de cook y leverage).", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
+infPlot <- influencePlot(modelo_mod)
+infPlot
 ```
-Si bien la distancia de Cook de la observación 58 es de las más grandes en comparación al resto, en términos absolutos la distancia de Cook no es elevada para esta observación. Además su Hat-Value, otra medida de influencia, tampoco es elevado.
+Tenemos ahora que las observaciones no poseen en ningún caso una distancia de Cook que nos pueda preocupar. Además, las que poseen un valor más alto tienen un leverage relativamente bajo.
 
-```{r}
+
+```{r influence_measures_new}
 summary(influence.measures(modelo_mod))
 ```
+
 La función influence.measures muestra que esta observación tampoco afecta de forma importante a los coeficientes, ya que los DfBetas no son significativos. Por tanto, podemos conservar esta observación, ya que si bien el criterio utilizado la indica como outlier, no tiene una influencia desmesurada en nuestro modelo por lo que no debería ser un problema.
 
-Finalmente, vamos a analizar la colinealidad
-```{r}
-pairs(cars3[,c('Horsepower','RPM','Width','Wheelbase')])
+Finalmente, vamos a analizar la colinealidad:
+
+```{r ggpairs_modelo_new, fig.cap = "\\label{fig:pairs_new}Gráficos por pares para las variables numéricas presentes en nuestro modelo.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
+cols_to_plot <- c('Horsepower', 'RPM', 'Width', 'Wheelbase')
+ggpairs(cars3[, cols_to_plot], progress = FALSE)
 ```
 
-```{r}
-cor(cars3[,c('Price','Horsepower','RPM','Width', 'Wheelbase')])
+```{r cor_modelo_new, fig.cap = "\\label{fig:cor_modelo_mod}Mapa de correlaciones para las variables numéricas en el modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 3.5, fig.height = 2.5}
+cor(cars3[, cols_to_plot])
+
+correlation_matrix <- cor(cars3[, cols_to_plot])
+ggcorrplot(correlation_matrix)
 ```
+
 Obviamente las correlaciones entre las variables se mantienen iguales ya que sólo hemos eliminado una observación de nuestro conjunto de datos.
 
-```{r}
+```{r vif_modelo_new}
 vif(modelo_mod)
 ```
-Por otro lado, al eliminar la variable Width del modelo, ya no tenemos nigún factor de inflación de la varinza por encima de 5 y que pudiera ser preocupante.
+Por otro lado, al eliminar la variable `Width` del modelo, encontramos una mejoría apreciable en VIF. La única con un VIF algo superior a 5 sería `Wheelbase`, pero esto no resulta demasiado preocupante. $\\$
+
 
 En definitiva, con las modificaciones del modelo se han podido solucionar los problemas de homocedasticidad, normalidad de los residuos, además de la colinealidad de las variables del modelo, obteniendo prácticamente la misma varianza explicada.
 
-Con este modelo podemos predecir ahora el Precio a partir de la mediana de los predictores del modelo. En el caso de la variable categórica Origin, tomaremos la moda.
+## Apartado 6.
 
-```{r}
-x0 <- data.frame(Origin = levels(cars3$Type)[which.max(table(cars3$Type))], Horsepower = median(cars3$Horsepower), RPM = median(cars3$RPM), Length = median(cars3$Width), Wheelbase = median(cars3$Wheelbase), Origin = levels(cars3$Origin)[which.max(table(cars3$Origin))])
+Obtén la predicción del precio para un coche en la mediana de los predictores en el modelo escogido. *Notar que las variables categóricas se tratan de diferente manera, no hay mediana*.
 
-predict(modelo_mod, newdata = x0)
+**Resolución**.
+
+
+Con el modelo adquirido final (llamado `modelo_mod` en el código), podemos predecir ahora el precio de un coche en la situación que se nos pide. Para el caso de las variables de tipo categórico hemos escogido la moda como representante. Recordemos que nuestro modelo es de la forma:
+
+
+
+```{r prediccion_final}
+x0 <- data.frame(
+  Type = levels(cars3$Type)[which.max(table(cars3$Type))],
+  Horsepower = median(cars3$Horsepower),
+  RPM = median(cars3$RPM),
+  Length = median(cars3$Width),
+  Wheelbase = median(cars3$Wheelbase),
+  Origin = levels(cars3$Origin)[which.max(table(cars3$Origin))]
+)
+
+prediction_original_scale <- exp(predict(modelo_mod, newdata = x0, interval = 'prediction'))
+
+cat("Las características del coche para la predicción vienen dadas por: \n")
+
+print(x0)
+
+cat("La estimación puntual de Price (en miles de dólares) para un coche con esas características es \n",
+    round(prediction_original_scale[1], 3), "con un intervalo de predicción:", 
+    "(", round(prediction_original_scale[2], 3), ",", round(prediction_original_scale[3], 3), ").")
 ```
-El precio predecido por el modelo es de 2.73
+
