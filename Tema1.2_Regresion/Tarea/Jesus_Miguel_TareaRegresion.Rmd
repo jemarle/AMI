@@ -3,13 +3,13 @@ title: "Tarea -- Regresión lineal"
 author: "Jesús Martínez Leal y Miguel Muñoz Blat (Grupo 11)"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    fig_caption: yes
   html_document:
     echo: yes
     number_sections: no
     theme: readable
-    toc: yes
-    fig_caption: yes
-  pdf_document:
     toc: yes
     fig_caption: yes
   html_notebook: 
@@ -99,9 +99,10 @@ max_abs_value <- max(abs(cors_Price[!(names(cors_Price) == "Price")]))
 var_max_value <- names(cors_Price)[which(abs(cors_Price) == max_abs_value)]
 
 max_value <- cors_Price[[var_max_value]]
-```
 
-Como se puede apreciar, la mayor correlación en valor absoluto más cercana a la unidad viene dada por la variable `var_max_value` con un valor de `r max_value`.
+```
+Como se puede apreciar, la mayor correlación en valor absoluto más cercana a la unidad viene dada por la variable `var_max_value` con un valor de `r max_value`
+
 
 ## Apartado 2.
 
@@ -306,9 +307,9 @@ sum_reg <- summary(reg) # Resumen del modelo de regresión lineal
 sum_reg
 confint(reg, level = 0.90)
 ```
-En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. El intercepto posee un valor claramente distinto de 0 y además cuenta con significancia. El valor de la pendiente por su parte es negativo y cuenta con significancia. Se muestran también los intervalos de confianza al 90% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto no se descarta que sea 0, mientras que la pendiente sí es claramente distinta de 0 y además negativa.$\\$
+En los coeficientes podemos apreciar que el valor estimado del `intercept` ($\beta_0$) es `r reg$coefficients[1]` y el de la pendiente ($\beta_1$) es `r reg$coefficients[2]`. El intercepto posee un valor claramente distinto de 0 y además cuenta con significancia. El valor de la pendiente por su parte es negativo y cuenta con significancia. Se muestran también los intervalos de confianza al 90% para intercepto y pendiente. Esto permite reafirmar lo comentado anteriormente: el intercepto se descarta que sea nulo, mientras que la pendiente sí es claramente distinta de 0 y además negativa.$\\$
 
-Por otra parte, el valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Precio`. Este valor es ciertamente bajo y está algo lejos de lo que sería lo usualmente aceptable.
+Por otra parte, el valor obtenido para el coeficiente de determinación $R^2$ ha sido de `r sum_reg$r.squared`. Así pues, `r eval(sum_reg$r.squared) * 100` % sería el porcentaje de variabilidad explicado por el modelo para la variable dependiente `Price`. Este valor es ciertamente bajo y está algo lejos de lo que sería lo usualmente aceptable.
 
 El valor ajustado del $R^2$ viene dado por la expresión:
 
@@ -328,7 +329,7 @@ Dibuja el diagrama de dispersión, la recta de regresión y las bandas de predic
 
 ```{r graph_mpg_price, fig.cap = "\\label{fig:graph_mpg_price}Gráfico de dispersión y recta de regresión para nuestro modelo", fig.pos = "H", fig.align = "center"}
 
-with(cars, plot(MPG.city, Price, col = 'blue', xlab = 'MPG.city / MPG', ylab = 'Price / 1000 $'))
+with(cars, plot(MPG.city, Price, col = 'blue', xlab = 'MPG.city / mpg', ylab = 'Price / 1000 $'))
 
 # Recta de regresión
 abline(reg, col = 'red')
@@ -413,7 +414,7 @@ sum_logreg <- summary(logreg) # Resumen del modelo de regresión lineal
 sum_logreg
 confint(logreg, level = 0.90)
 ```
-Observamos ya una subida en el valor de $R^2$:`r sum_logreg$r.squared`, indicando que este modelo puede ajustarse de una mejor manera a nuestros datos.
+Observamos ya una subida en el valor de $R^2 = $`r sum_logreg$r.squared`, indicando que este modelo puede ajustarse de una mejor manera a nuestros datos.
 
 ```{r graph_logmpg_logprice, fig.cap = "\\label{fig:graph_logmpg_logprice}Gráfico de dispersión y recta de regresión para nuestro modelo potencial", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 
@@ -581,7 +582,7 @@ A la vista de lo obtenido hemos visto adecuado seleccionar el mejor modelo en fu
 
 ```{r seleccion_modelo_regsubsets_poly}
 # ESTE CHUNK DE AQUÍ ES SOLO PARA CUANDO SE INCLUYEN
-mejor_modelo_bic <- resumen$which[which.min(resumen$cp), ]
+mejor_modelo_bic <- resumen$which[which.min(resumen$cp), ] # elijo cp que equivale a AIC igual que en stepwise 
 
 
 variables_incluidas <- names(which(mejor_modelo_bic))
@@ -599,14 +600,14 @@ modelo_final <- lm(formula, data = cars)
 summary(modelo_final)
 ```
 
-Las variables que incluye el mejor modelo seleccionado son: {`r variables_incluidas_arreglado`} (resultando significativos sus coeficientes para el modelo, como bien se muestra arriba). Nótese que las variables `Type` y `Origin` han sido consideradas de tipo factor, por lo que, a pesar de que en el mejor modelo obtenido con BIC se seleccionaran solo ciertas categorías, en el modelo seleccionado final debe estar la columna pertinente completa. $\\$
+Las variables que incluye el mejor modelo seleccionado son: {`r variables_incluidas_arreglado`} (resultando significativos sus coeficientes para el modelo, como bien se muestra arriba). Nótese que las variables `Type` y `Origin` han sido consideradas de tipo factor, por lo que, a pesar de que en el mejor modelo obtenido con Cp se seleccionaran solo ciertas categorías, en el modelo seleccionado final debe estar la columna pertinente completa. $\\$
 
 Los resultados obtenidos resultan lógicos si se piensa en el contexto.
 
-- Un incremento en potencia (`Horsepower`) conllevaría un mayor `Precio` en líneas generales.
+- Un incremento en potencia (`Horsepower`) conllevaría un mayor `Price` en líneas generales.
 - Un incremento en la distancia entre centros de ruedas delanteras y traseras (`Wheelbase`) suele indicar que el coche sea algo más grande, lo que puede llevar a un mayor precio.
 
-En cuanto al resto, resulta muy complicado deducir de manera lógica el por qué el coeficiente es positivo o negativo. Se necesitarían explorar otros factores importantes como pudiera ser la demanda de dicho año (1993) en USA de vehículos. Además, una muestra de `nrow(cars)` vehículos no consideramos que sea del todo suficiente (al menos con la percepción actual de la gran cantidad de vehículos que existen).
+En cuanto al resto, resulta muy complicado deducir de manera lógica el por qué el coeficiente es positivo o negativo. Se necesitarían explorar otros factores importantes como pudiera ser la demanda de dicho año (1993) en USA de vehículos. Además, una muestra de `r nrow(cars)` vehículos no consideramos que sea del todo suficiente (al menos con la percepción actual de la gran cantidad de vehículos que existen).
 
 Una cosa que sí llama la atención es que el precio disminuye con la variable `RPM`, ya que mayores Revoluciones Por Minuto proporcionan mayor potencia y uno esperaría un mayor precio. Por ello, podemos estudiar si RPM es realmente significativa realizando un test F parcial, cuya hipótesis nula es que el coeficiente RPM es cero.
 
@@ -625,9 +626,9 @@ Selecciona el mejor modelo con el método stepwise.
 
 Otro método de selección de un modelo óptimo es el que plantea `stepwise`. Existen dos enfoques:
 
-- **Forward Selection (selección hacia delante)**. Se parte aquí de un modelo vació y se van agregando una a una las variables predictoras, evaluando el impacto de cada adición en el rendimiento del modelo. En cada caso, se agrega la variable que más mejora la métrica de desempeño que estemos utilizando (como BIC), hasta que no se mejore más o se alcance algún criterio de detención.
+- **Forward Selection (selección hacia delante)**. Se parte aquí de un modelo vacío y se van agregando una a una las variables predictoras, evaluando el impacto de cada adición en el rendimiento del modelo. En cada caso, se agrega la variable que más mejora la métrica de desempeño que estemos utilizando (como AIC), hasta que no se mejore más o se alcance algún criterio de detención.
 
-- **Backward Elimination (eliminación hacia atrás)**. Se empieza con un modelo que incluye todas las variables predictoras y, en cada paso, elimina la variable menos significativa según algún criterio de evaluación (como BIC) hasta que eliminar más variables empeore el modelo o se alcance un criterio de detención.
+- **Backward Elimination (eliminación hacia atrás)**. Se empieza con un modelo que incluye todas las variables predictoras y, en cada paso, elimina la variable menos significativa según algún criterio de evaluación (como AIC) hasta que eliminar más variables empeore el modelo o se alcance un criterio de detención.
 
 Existen alternativas que mezclarían los dos métodos.
 
@@ -998,7 +999,7 @@ box_cox_data <- boxcox(mejor_modelo, lambda = seq(-2, 2, length = 10))
 box_cox_data$x[which.max(box_cox_data$y)]
 ```
 
-En este caso la lambda que maximiza la verosimilitud sería -0.22. Este es un valor bastante próximo a 0 y en las transformaciones de Box-Cox se toma el logaritmo cuando lambda tiende a cero. Por tanto, por simplicidad podemos tomar directamente una transformación logarítmica, que además tiene una interpretación más directa. Se comparará también con el valor que se obtendría para el $R^2$ ajustado con la transformación exacta. $\\$
+En este caso la $\lambda$ que maximiza la verosimilitud sería -0.22. Este es un valor bastante próximo a 0 y en las transformaciones de Box-Cox se toma el logaritmo cuando lambda tiende a cero. Por tanto, por simplicidad podemos tomar directamente una transformación logarítmica, que además tiene una interpretación más directa. Se comparará también con el valor que se obtendría para el $R^2$ ajustado con la transformación exacta. $\\$
 
 Por otro lado, eliminamos la observación 59, que es un outlier y una observación influyente que puede estar afectando demasiado a los coeficietes del modelo.
 
@@ -1090,15 +1091,15 @@ outliertest_new
 
 cars3[names(outliertest_new$p), ]
 ```
-Esta vez no se han encontrado outliers con el test de Bonferroni, como era de esperar. Aún así, la función `outlierTest()` ha retornado el valor que mayor residuo studentizado posee. Vemos que es ligerísimamente superior a 3. Por tanto, considerarlo como un outlier puede ser demasiado arbitrario. Analizamos ahora si este posible outlier puede ser una observación influyente.
+Esta vez no se han encontrado outliers con el test de Bonferroni, como era de esperar. Aún así, la función `outlierTest()` ha retornado el valor que mayor residuo studentizado posee. Vemos que es incluso inferior a 3. Por tanto, considerarlo como un outlier puede ser demasiado arbitrario. Analizamos ahora si este posible outlier puede ser una observación influyente.
 
-```{r distcook_new, fig.cap = "\\label{fig:distcook_new}Distancias de Cook para los valores ajustados en nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
+```{r distcook_new, fig.cap = "\\label{fig:distcook_new}Distancias de Cook para los valores ajustados en nuestro modelo modificado.", fig.pos = "H", fig.align = "center", fig.width = 4, fig.height = 3}
 n <- nrow(cars3)
 p <- nrow(sum_reg_mod$coefficients)
 
 Di <- cooks.distance(modelo_mod)
 
-plot(fitted(modelo_mod), Di, main = "Distancia de Cook para los valores ajustados", xlab = "Fitted values", ylab = "Cook's distance")
+plot(fitted(modelo_mod), Di, main = "Distancia de Cook para \n los valores ajustados", xlab = "Fitted values", ylab = "Cook's distance")
 abline(h = 4 / (n - p - 1), col="red", lwd = 1)
 
 boxplot(cooks.distance(modelo_mod), main = "Boxplot para distancias de Cook", xlab = "DistCook")
@@ -1107,7 +1108,7 @@ sum_cook <- summary(cooks.distance(modelo_mod))
 sum_cook
 ```
 
-En esta ocasión ya no encontramos observaciones con una distancia de Cook tan grande como antes, sino que ahora el valor máximo se queda en `r sum_cook["Max."].
+En esta ocasión ya no encontramos observaciones con una distancia de Cook tan grande como antes, sino que ahora el valor máximo se queda en `r sum_cook["Max."]`.
 
 ```{r influencePlot_new, fig.cap = "\\label{fig:influencePlot_new}Gráfico de influencia para nuestro modelo modificado(Distancia de cook y leverage).", fig.pos = "H", fig.align = "center", fig.width = 5, fig.height = 4}
 infPlot <- influencePlot(modelo_mod)
@@ -1141,21 +1142,19 @@ Obviamente las correlaciones entre las variables se mantienen iguales ya que só
 ```{r vif_modelo_new}
 vif(modelo_mod)
 ```
-Por otro lado, al eliminar la variable `Width` del modelo, encontramos una mejoría apreciable en VIF. La única con un VIF algo superior a 5 sería `Wheelbase`, pero esto no resulta demasiado preocupante. $\\$
+Por otro lado, al eliminar la variable `Width` del modelo, encontramos una mejoría apreciable en VIF. La única con un VIF algo superior a 5 sería `Wheelbase`, pero esto no resulta demasiado preocupante. (`Type` posee algo más, pero tiene 5 grados de libertad). $\\$
 
 
-En definitiva, con las modificaciones del modelo se han podido solucionar los problemas de homocedasticidad, normalidad de los residuos, además de la colinealidad de las variables del modelo, obteniendo prácticamente la misma varianza explicada.
+En definitiva, con las modificaciones del modelo se han podido solucionar los problemas de homocedasticidad, normalidad de los residuos, además de la colinealidad de las variables del modelo. Hay que tener claro que el hecho de quitar el outlier antes se hace para comprobar la validez del modelo y si el resto de datos pueden adecuarse más con este. Estrictamente, en un problema real no podríamos eliminar este outlier así como así en nuestro modelo, ya que podría no ser un dato erróneo.
 
-## Apartado 6.
+## Apartado 6
 
 Obtén la predicción del precio para un coche en la mediana de los predictores en el modelo escogido. *Notar que las variables categóricas se tratan de diferente manera, no hay mediana*.
 
 **Resolución**.
 
 
-Con el modelo adquirido final (llamado `modelo_mod` en el código), podemos predecir ahora el precio de un coche en la situación que se nos pide. Para el caso de las variables de tipo categórico hemos escogido la moda como representante. Recordemos que nuestro modelo es de la forma:
-
-
+Con el modelo adquirido final (llamado `modelo_mod` en el código), podemos predecir ahora el precio de un coche en la situación que se nos pide. Para el caso de las variables de tipo categórico hemos escogido la moda como representante. 
 
 ```{r prediccion_final}
 x0 <- data.frame(
